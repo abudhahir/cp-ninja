@@ -1,20 +1,13 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-import { findSkillsInDir, extractFrontmatter } from './lib/skills-core';
-
-interface Skill {
-    name: string;
-    description: string;
-    sourceType: string;
-    skillFile: string;
-}
+import { findSkillsInDir, extractFrontmatter, Skill } from './lib/skills-core';
 
 export class SkillTreeDataProvider implements vscode.TreeDataProvider<SkillItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<SkillItem | undefined | void> = new vscode.EventEmitter<SkillItem | undefined | void>();
     readonly onDidChangeTreeData: vscode.Event<SkillItem | undefined | void> = this._onDidChangeTreeData.event;
 
-    constructor(private skillsDir: string, private personalSkillsDir: string) {}
+    constructor(private skillsDir: string, private personalSkillsDir: string, private extensionBasePath: string) {}
 
     getTreeItem(element: SkillItem): vscode.TreeItem {
         return element;

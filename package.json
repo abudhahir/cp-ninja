@@ -3,6 +3,10 @@
   "displayName": "Copilot Ninja Skills",
   "description": "Integrates Superpowers skills into GitHub Copilot for enhanced developer workflow.",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/abudhahir/cp-ninja.git"
+  },
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -14,11 +18,12 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "chat.participants": [
+    "chatParticipants": [
       {
         "id": "cp-ninja",
-        "name": "@cp-ninja",
-        "iconPath": "./icon.png",
+        "name": "cp-ninja",
+        "fullName": "Copilot Ninja",
+        "iconPath": "./resources/cp-ninja-icon.svg",
         "description": "Copilot Ninja grants superpowers to your AI assistant."
       }
     ],

@@ -33,10 +33,10 @@ export class SuggestionEngine {
         // Add more rules as needed
     ];
 
-    constructor(private skillsDir: string, private personalSkillsDir: string) {
+    constructor(private skillsDir: string, private personalSkillsDir: string, private extensionBasePath: string) {
         this.loadConfiguration();
         vscode.workspace.onDidChangeConfiguration(e => {
-            if (e.intersectsConfiguration('cpNinja')) {
+            if (e.affectsConfiguration('cpNinja')) {
                 this.loadConfiguration();
             }
         });
