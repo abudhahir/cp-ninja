@@ -2,6 +2,10 @@
 
 This project is a conceptual port of the "Superpowers" skill system to a GitHub Copilot plugin (for use with VS Code/IntelliJ Copilot plugins). The goal is to allow Copilot to leverage a structured library of "skills" to guide its behavior and enforce development best practices.
 
+## Installation
+
+For detailed setup and installation instructions, please see the [Installation Guide](./doc/installation.md).
+
 ## Project Structure
 
 *   `./cp-ninja/src/lib/skills-core.js`: Contains the core logic for discovering, parsing, and resolving skills. This is directly adapted from the original Superpowers project.
