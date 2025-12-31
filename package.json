@@ -1,0 +1,79 @@
+{
+  "name": "cp-ninja",
+  "displayName": "Copilot Ninja Skills",
+  "description": "Integrates Superpowers skills into GitHub Copilot for enhanced developer workflow.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "chat.participants": [
+      {
+        "id": "cp-ninja",
+        "name": "@cp-ninja",
+        "iconPath": "./icon.png",
+        "description": "Copilot Ninja grants superpowers to your AI assistant."
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cp-ninja-sidebar",
+          "title": "Copilot Ninja",
+          "icon": "resources/cp-ninja-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "cp-ninja-sidebar": [
+        {
+          "id": "cp-ninja.skillsView",
+          "name": "Skills Explorer"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Copilot Ninja",
+      "properties": {
+        "cpNinja.enableSuggestions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable proactive skill suggestions."
+        },
+        "cpNinja.suggestionCooldown": {
+          "type": "number",
+          "default": 300,
+          "description": "Cooldown period (in seconds) between proactive suggestions."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTests.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.75.0",
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "16.x",
+    "@typescript-eslint/eslint-plugin": "^5.59.1",
+    "@typescript-eslint/parser": "^5.59.1",
+    "eslint": "^8.39.0",
+    "glob": "^8.1.0",
+    "mocha": "^10.2.0",
+    "typescript": "^5.0.4",
+    "@vscode/test-electron": "^2.3.0"
+  }
+}
