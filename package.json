@@ -73,7 +73,9 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTests.js"
+    "test": "node ./out/test/runTests.js",
+    "build:webview": "cd webview-src && npm install && npm run build",
+    "watch:webview": "cd webview-src && npm run watch"
   },
   "devDependencies": {
     "@types/vscode": "^1.75.0",

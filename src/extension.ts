@@ -2,14 +2,14 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { findSkillsInDir, resolveSkillPath, stripFrontmatter } from './lib/skills-core';
-import { SkillTreeDataProvider, SkillItem } from './SkillsTreeDataProvider'; // Import the new data provider
+import { SkillTreeDataProvider } from './SkillsTreeDataProvider'; // Import the new data provider
 import { SuggestionEngine } from './SuggestionEngine'; // Import the SuggestionEngine
 import { SkillComposerPanel } from './webview/SkillComposerPanel';
 
 let extensionBasePath: string; // Declare globally
 
 // Define the chat handler for our @cp-ninja participant
-const chatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRequest, context: vscode.ChatContext, stream: vscode.ChatResponseStream, token: vscode.CancellationToken): Promise<vscode.ChatResult> => {
+const chatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRequest, context: vscode.ChatContext, stream: vscode.ChatResponseStream): Promise<vscode.ChatResult> => {
     const skillsDir = path.join(extensionBasePath, 'skills'); // Use the stored path
     const personalSkillsDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja', 'skills');
 

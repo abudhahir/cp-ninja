@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 
 export class SkillComposerPanel {
     public static currentPanel: SkillComposerPanel | undefined;
@@ -78,12 +77,17 @@ export class SkillComposerPanel {
     }
 
     private updateWebview() {
-        const webview = this.panel.webview;
-
-        this.panel.webview.html = this.getHtmlForWebview(webview);
+        this.panel.webview.html = this.getHtmlForWebview();
     }
 
-    private getHtmlForWebview(webview: vscode.Webview) {
+    private getHtmlForWebview() {
+        const webview = this.panel.webview;
+        
+        // Get the local resource paths for the React bundle
+        const scriptUri = webview.asWebviewUri(
+            vscode.Uri.joinPath(this.extensionUri, 'webview-dist', 'bundle.js')
+        );
+
         return `<!DOCTYPE html>
             <html lang="en">
             <head>
@@ -98,24 +102,13 @@ export class SkillComposerPanel {
                         color: var(--vscode-foreground);
                         background-color: var(--vscode-editor-background);
                         margin: 0;
-                        padding: 20px;
-                    }
-                    .container {
-                        max-width: 800px;
-                        margin: 0 auto;
-                    }
-                    h1 {
-                        color: var(--vscode-titleBar-activeForeground);
-                        margin-bottom: 20px;
+                        padding: 0;
                     }
                 </style>
             </head>
             <body>
-                <div class="container">
-                    <h1>Skill Composer</h1>
-                    <p>Welcome to the Copilot Ninja Skill Composer!</p>
-                    <p>This is a basic webview panel that will be enhanced with React components for skill composition.</p>
-                </div>
+                <div id="root"></div>
+                <script src="${scriptUri}"></script>
             </body>
             </html>`;
     }

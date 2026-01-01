@@ -1,7 +1,5 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import * as fs from 'fs';
-import { findSkillsInDir, extractFrontmatter, Skill } from './lib/skills-core';
+import { findSkillsInDir, Skill } from './lib/skills-core';
 
 export class SkillTreeDataProvider implements vscode.TreeDataProvider<SkillItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<SkillItem | undefined | void> = new vscode.EventEmitter<SkillItem | undefined | void>();
