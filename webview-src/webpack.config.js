@@ -9,6 +9,7 @@ module.exports = {
     path: path.resolve(__dirname, '../webview-dist'),
     filename: 'bundle.js',
     clean: true,
+    globalObject: 'self',
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
@@ -24,6 +25,10 @@ module.exports = {
         test: /\.css$/,
         use: ['style-loader', 'css-loader'],
       },
+      {
+        test: /\.ttf$/,
+        type: 'asset/resource'
+      }
     ],
   },
   plugins: [
