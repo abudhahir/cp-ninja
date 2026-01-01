@@ -158,6 +158,14 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.openSkillComposer', () => {
         SkillComposerPanel.createOrShow(context);
     }));
+
+    // Register command for status bar target path display
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showTargetPath', async () => {
+        // This command is called by the status bar item
+        if (SkillComposerPanel.currentPanel) {
+            await SkillComposerPanel.currentPanel.showTargetPathCommand();
+        }
+    }));
 }
 
 export function deactivate() {}

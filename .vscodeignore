@@ -5,3 +5,16 @@ node_modules/
 *.log
 cp-ninja-old/
 out/test/
+webview-src/node_modules/
+webview-src/.git/
+webview-src/dist/
+webview-src/src/
+webview-src/tsconfig.json
+webview-src/webpack.config.js
+webview-src/package*.json
+.github/
+*.md
+!README.md
+tsconfig.json
+webpack.config.js
+.gitignore

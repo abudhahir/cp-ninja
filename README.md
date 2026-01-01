@@ -32,6 +32,58 @@ This project is implemented as a **Chat Participant** extension for VS Code, pro
 *   **Dynamic Skill Loading:** Based on the command, the handler uses the `skills-core.js` library to find the appropriate `SKILL.md` file and injects its content directly into the chat conversation.
 *   **Bootstrap:** When a new chat session with `@cp-ninja` begins, the `using-cp-ninja` skill is automatically loaded to provide initial instructions.
 
+## Skill Composer
+
+CP-Ninja includes a **Skill Composer** that provides a native VS Code integrated experience for creating and managing skills with full GitHub Copilot support.
+
+### 🚀 Getting Started
+
+1. Open the command palette (`Ctrl+Shift+P`)
+2. Run `CP-Ninja: Open Skill Composer`
+3. Choose your starting point:
+   - **Templates**: Browse existing cp-ninja skills
+   - **From Scratch**: Start with a comprehensive template
+   - **Import**: Import existing markdown files
+
+### ✨ Key Features
+
+- **Native Editor Integration**: Skills open in VS Code's markdown editor with full Copilot support
+- **Template Gallery**: Browse and use existing skills as starting points
+- **Placeholder System**: Templates use `[PLACEHOLDER]` format for easy customization
+- **Dual Save Options**: Save to user (`~/.cp-ninja/skills`) or project (`.cp-ninja/skills`) directories
+- **AI-Powered Editing**: Full GitHub Copilot integration while writing skills
+
+### 🏗️ Skill Template Structure
+
+```markdown
+# [SKILL_NAME]
+
+## Summary
+[Brief description of what this skill does and when to use it]
+
+## When to Use
+- [Specific scenario 1]
+- [Specific scenario 2]
+
+## Process
+### Step 1: [First Step Name]
+[Detailed description with code examples]
+
+## Success Criteria
+- [ ] [Measurable outcome 1]
+- [ ] [Measurable outcome 2]
+
+## Examples, Tips, Troubleshooting sections...
+```
+
+### 💡 Benefits
+
+- **GitHub Copilot Integration**: AI-powered suggestions while writing skills
+- **Syntax Highlighting**: Proper markdown formatting in native editor  
+- **Familiar Experience**: Standard VS Code shortcuts and features
+- **Performance**: Native editor is faster than custom webview alternatives
+- **Team Collaboration**: Easy sharing and version control of skills
+
 ## Future Development
 
 To make this a fully functional plugin, the placeholder Copilot API calls would need to be replaced with actual APIs provided by the GitHub Copilot extension framework (once they become available or are reverse-engineered). This would involve understanding how to:

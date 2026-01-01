@@ -1,123 +1,38 @@
-import React, { useState } from 'react';
-import { SkillEditor } from './SkillEditor';
+import React from 'react';
+import { TemplateGallery } from './TemplateGallery';
+import { SkillTemplate } from '../types/skill';
 
-interface Tab {
-    id: string;
-    label: string;
-    icon: string;
-    content: React.ReactNode;
-}
+declare const vscode: any;
 
 export const CenterPanel: React.FC = () => {
-    const [skillContent, setSkillContent] = useState('');
-    const [activeEditorTab, setActiveEditorTab] = useState('editor');
-    const [activePreviewTab, setActivePreviewTab] = useState('preview');
-
-    const editorTabs: Tab[] = [
-        {
-            id: 'editor',
-            label: 'Editor',
-            icon: '📝',
-            content: (
-                <SkillEditor 
-                    value={skillContent}
-                    onChange={setSkillContent}
-                    height="100%"
-                />
-            )
-        },
-        {
-            id: 'visual-builder',
-            label: 'Visual Builder',
-            icon: '🎨',
-            content: (
-                <div style={placeholderContainerStyles}>
-                    <p style={placeholderStyles}>
-                        🎨 Visual Builder coming soon...
-                        <br />
-                        <small>Drag-and-drop interface for creating skills</small>
-                    </p>
-                </div>
-            )
+    const handleTemplateSelect = (template: SkillTemplate) => {
+        // Send message to VS Code to create new skill from template
+        if (typeof window !== 'undefined' && (window as any).acquireVsCodeApi) {
+            const vscode = (window as any).acquireVsCodeApi();
+            vscode.postMessage({
+                command: 'createNewSkill',
+                content: template.content,
+                templateName: template.name,
+                mode: 'template'
+            });
         }
-    ];
-
-    const previewTabs: Tab[] = [
-        {
-            id: 'preview',
-            label: 'Preview',
-            icon: '👁️',
-            content: (
-                <div style={placeholderContainerStyles}>
-                    <p style={placeholderStyles}>
-                        👁️ Live Preview
-                        <br />
-                        <small>Preview of your skill as it will appear</small>
-                    </p>
-                </div>
-            )
-        },
-        {
-            id: 'test',
-            label: 'Test',
-            icon: '🧪',
-            content: (
-                <div style={placeholderContainerStyles}>
-                    <p style={placeholderStyles}>
-                        🧪 Skill Testing
-                        <br />
-                        <small>Test your skill with sample inputs</small>
-                    </p>
-                </div>
-            )
-        }
-    ];
+    };
 
     return (
         <div data-testid="center-panel" style={panelStyles}>
-            {/* Editor Section - 60% */}
-            <div data-testid="editor-section" style={editorStyles}>
-                <div style={tabBarStyles}>
-                    {editorTabs.map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveEditorTab(tab.id)}
-                            style={{
-                                ...tabButtonStyles,
-                                ...(activeEditorTab === tab.id ? activeTabStyles : inactiveTabStyles)
-                            }}
-                            data-testid={`editor-tab-${tab.id}`}
-                        >
-                            <span style={tabIconStyles}>{tab.icon}</span>
-                            {tab.label}
-                        </button>
-                    ))}
+            <div style={contentStyles}>
+                <div style={heroStyles}>
+                    <h2 style={titleStyles}>🚀 CP-Ninja Skill Composer</h2>
+                    <p style={subtitleStyles}>Create and organize your development skills with native VS Code integration</p>
                 </div>
-                <div style={tabContentStyles}>
-                    {editorTabs.find(tab => tab.id === activeEditorTab)?.content}
-                </div>
-            </div>
 
-            {/* Preview Section - 40% */}
-            <div data-testid="preview-section" style={previewStyles}>
-                <div style={tabBarStyles}>
-                    {previewTabs.map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActivePreviewTab(tab.id)}
-                            style={{
-                                ...tabButtonStyles,
-                                ...(activePreviewTab === tab.id ? activeTabStyles : inactiveTabStyles)
-                            }}
-                            data-testid={`preview-tab-${tab.id}`}
-                        >
-                            <span style={tabIconStyles}>{tab.icon}</span>
-                            {tab.label}
-                        </button>
-                    ))}
-                </div>
-                <div style={tabContentStyles}>
-                    {previewTabs.find(tab => tab.id === activePreviewTab)?.content}
+                {/* Template Gallery Section */}
+                <div style={templateGallerySection}>
+                    <h3 style={sectionHeaderStyles}>📚 Browse Skill Templates</h3>
+                    <p style={sectionDescriptionStyles}>
+                        Click any template card to create a new skill. Templates open in VS Code's native editor with full Copilot support.
+                    </p>
+                    <TemplateGallery onTemplateSelect={handleTemplateSelect} />
                 </div>
             </div>
         </div>
@@ -134,74 +49,58 @@ const panelStyles: React.CSSProperties = {
     overflow: 'hidden'
 };
 
-const editorStyles: React.CSSProperties = {
-    height: '60%',
+const contentStyles: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    borderBottom: '1px solid var(--vscode-panel-border)'
-};
-
-const previewStyles: React.CSSProperties = {
-    height: '40%',
-    display: 'flex',
-    flexDirection: 'column'
-};
-
-const tabBarStyles: React.CSSProperties = {
-    display: 'flex',
-    backgroundColor: 'var(--vscode-editorGroupHeader-tabsBackground)',
-    borderBottom: '1px solid var(--vscode-tab-border)',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    height: '100%',
+    padding: '16px 20px',
+    textAlign: 'center',
     overflow: 'hidden'
 };
 
-const tabButtonStyles: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '8px 16px',
-    fontSize: '13px',
-    fontFamily: 'var(--vscode-font-family)',
-    border: 'none',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s ease',
-    minWidth: '120px',
-    justifyContent: 'center'
+const heroStyles: React.CSSProperties = {
+    marginBottom: '20px'
 };
 
-const activeTabStyles: React.CSSProperties = {
-    backgroundColor: 'var(--vscode-tab-activeBackground)',
-    color: 'var(--vscode-tab-activeForeground)',
-    borderBottom: '2px solid var(--vscode-tab-activeBorder)'
+const titleStyles: React.CSSProperties = {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    color: 'var(--vscode-editor-foreground)',
+    margin: '0 0 8px 0'
 };
 
-const inactiveTabStyles: React.CSSProperties = {
-    backgroundColor: 'var(--vscode-tab-inactiveBackground)',
-    color: 'var(--vscode-tab-inactiveForeground)'
-};
-
-const tabIconStyles: React.CSSProperties = {
-    fontSize: '14px'
-};
-
-const tabContentStyles: React.CSSProperties = {
-    flex: 1,
-    overflow: 'hidden',
-    backgroundColor: 'var(--vscode-editor-background)',
-    position: 'relative'
-};
-
-const placeholderContainerStyles: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    padding: '20px'
-};
-
-const placeholderStyles: React.CSSProperties = {
-    color: 'var(--vscode-descriptionForeground)',
+const subtitleStyles: React.CSSProperties = {
     fontSize: '14px',
+    color: 'var(--vscode-descriptionForeground)',
+    margin: '0',
+    lineHeight: '1.5'
+};
+
+const templateGallerySection: React.CSSProperties = {
+    marginTop: '20px',
+    width: '100%',
+    maxWidth: '100%',
+    textAlign: 'left',
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden'
+};
+
+const sectionHeaderStyles: React.CSSProperties = {
+    fontSize: '18px',
+    fontWeight: 'bold',
+    color: 'var(--vscode-editor-foreground)',
+    margin: '0 0 8px 0',
+    textAlign: 'center'
+};
+
+const sectionDescriptionStyles: React.CSSProperties = {
+    fontSize: '14px',
+    color: 'var(--vscode-descriptionForeground)',
+    margin: '0 0 16px 0',
     textAlign: 'center',
-    margin: 0,
     lineHeight: '1.5'
 };

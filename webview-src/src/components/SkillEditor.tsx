@@ -1,6 +1,4 @@
-import React from 'react';
-import Editor from '@monaco-editor/react';
-import { useMonacoEditor } from '../hooks/useMonacoEditor';
+import React, { useState } from 'react';
 
 interface SkillEditorProps {
   value: string;
@@ -15,13 +13,7 @@ export const SkillEditor: React.FC<SkillEditorProps> = ({
   placeholder = "# Skill Name\n\n**Goal:** What this skill accomplishes\n\n**Steps:**\n1. First step\n2. Second step\n3. Third step\n\n**Example:**\n```\nExample usage or code\n```",
   height = "100%"
 }) => {
-  const { handleEditorDidMount } = useMonacoEditor({
-    value,
-    onChange,
-    language: 'markdown',
-    theme: 'vs-dark',
-    placeholder
-  });
+  const [isFocused, setIsFocused] = useState(false);
 
   return (
     <div 
@@ -33,34 +25,47 @@ export const SkillEditor: React.FC<SkillEditorProps> = ({
         position: 'relative',
         backgroundColor: 'var(--vscode-editor-background)',
         border: '1px solid var(--vscode-widget-border)',
-        borderRadius: '4px'
+        borderRadius: '4px',
+        display: 'flex',
+        flexDirection: 'column'
       }}
     >
-      <Editor
-        height={height}
-        language="markdown"
-        theme="vs-dark"
-        value={value || placeholder}
-        onChange={(newValue) => onChange(newValue || '')}
-        onMount={handleEditorDidMount}
-        options={{
-          fontSize: 14,
-          tabSize: 2,
-          insertSpaces: true,
-          wordWrap: 'on',
-          lineNumbers: 'on',
-          minimap: { enabled: false },
-          scrollBeyondLastLine: false,
-          automaticLayout: true,
-          renderWhitespace: 'selection',
-          bracketPairColorization: { enabled: true },
-          guides: {
-            bracketPairs: 'active',
-            indentation: true
-          },
-          readOnly: false
+      <textarea
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        placeholder={placeholder}
+        style={{
+          width: '100%',
+          height: '100%',
+          border: 'none',
+          outline: 'none',
+          resize: 'none',
+          padding: '12px',
+          fontSize: '14px',
+          fontFamily: 'var(--vscode-editor-font-family, Consolas, monospace)',
+          lineHeight: '1.4',
+          color: 'var(--vscode-editor-foreground)',
+          backgroundColor: 'transparent',
+          borderRadius: '4px',
+          boxSizing: 'border-box'
         }}
       />
+      {!value && !isFocused && (
+        <div style={{
+          position: 'absolute',
+          top: '12px',
+          left: '12px',
+          color: 'var(--vscode-input-placeholderForeground)',
+          pointerEvents: 'none',
+          fontSize: '14px',
+          fontFamily: 'var(--vscode-editor-font-family, Consolas, monospace)',
+          whiteSpace: 'pre-line'
+        }}>
+          {placeholder}
+        </div>
+      )}
     </div>
   );
 };

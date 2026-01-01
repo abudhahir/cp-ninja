@@ -2,6 +2,12 @@ import { SkillCategory, SkillTemplate } from '../types/skill';
 
 export const SKILL_CATEGORIES: SkillCategory[] = [
     {
+        id: 'all',
+        name: 'All Templates',
+        description: 'Browse all available skill templates',
+        icon: '🌟'
+    },
+    {
         id: 'development',
         name: 'Development Workflows',
         description: 'Skills for code development, debugging, and quality assurance',
@@ -18,19 +24,198 @@ export const SKILL_CATEGORIES: SkillCategory[] = [
         name: 'Documentation',
         description: 'Skills for creating and maintaining project documentation',
         icon: '📝'
+    },
+    {
+        id: 'workflow',
+        name: 'Workflow & Process',
+        description: 'Skills for improving development workflows and processes',
+        icon: '⚡'
     }
 ];
 
 export const SKILL_TEMPLATES: SkillTemplate[] = [
-    // Development Workflows
+    // Existing CP-Ninja Skills
     {
-        id: 'debugging-process',
-        name: 'Debugging Process',
-        description: 'A systematic approach to identifying and fixing bugs in code',
+        id: 'brainstorming',
+        name: 'Brainstorming Ideas Into Designs',
+        description: 'You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation.',
+        category: 'workflow',
+        difficulty: 'Beginner',
+        tags: ['brainstorming', 'design', 'requirements', 'creative'],
+        content: `---
+name: brainstorming
+description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+---
+
+# Brainstorming Ideas Into Designs
+
+## Overview
+
+Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
+
+Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design in small sections (200-300 words), checking after each section whether it looks right so far.
+
+## The Process
+
+**Understanding the idea:**
+- Check out the current project state first (files, docs, recent commits)
+- Ask questions one at a time to refine the idea
+- Prefer multiple choice questions when possible, but open-ended is fine too
+- Only one question per message - if a topic needs more exploration, break it into multiple questions
+- Focus on understanding: purpose, constraints, success criteria
+
+**Exploring approaches:**
+- Propose 2-3 different approaches with trade-offs
+- Present options conversationally with your recommendation and reasoning
+- Lead with your recommended option and explain why
+
+**Presenting the design:**
+- Once you believe you understand what you're building, present the design
+- Break it into sections of 200-300 words
+- Ask after each section whether it looks right so far
+- Cover: architecture, components, data flow, error handling, testing
+- Be ready to go back and clarify if something doesn't make sense
+
+## After the Design
+
+**Documentation:**
+- Write the validated design to \`docs/plans/YYYY-MM-DD-<topic>-design.md\`
+- Use elements-of-style:writing-clearly-and-concisely skill if available
+- Commit the design document to git
+
+**Implementation (if continuing):**
+- Ask: "Ready to set up for implementation?"
+- Use cp-ninja:using-git-worktrees to create isolated workspace
+- Use cp-ninja:writing-plans to create detailed implementation plan
+
+## Key Principles
+
+- **One question at a time** - Don't overwhelm with multiple questions
+- **Multiple choice preferred** - Easier to answer than open-ended when possible
+- **YAGNI ruthlessly** - Remove unnecessary features from all designs
+- **Explore alternatives** - Always propose 2-3 approaches before settling
+- **Incremental validation** - Present design in sections, validate each
+- **Be flexible** - Go back and clarify when something doesn't make sense`,
+        customizationPoints: [
+            'Add project-specific design patterns',
+            'Include team decision-making process',
+            'Adapt questioning style for team dynamics'
+        ],
+        dependencies: ['using-git-worktrees', 'writing-plans']
+    },
+    {
+        id: 'test-driven-development',
+        name: 'Test-Driven Development (TDD)',
+        description: 'Use when implementing any feature or bugfix, before writing implementation code. Write the test first, watch it fail, write minimal code to pass.',
         category: 'development',
         difficulty: 'Intermediate',
-        tags: ['debugging', 'troubleshooting', 'systematic'],
-        content: `# Debugging Process
+        tags: ['tdd', 'testing', 'red-green-refactor', 'quality'],
+        content: `--- 
+name: test-driven-development
+description: Use when implementing any feature or bugfix, before writing implementation code
+---
+
+# Test-Driven Development (TDD)
+
+## Overview
+
+Write the test first. Watch it fail. Write minimal code to pass.
+
+**Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.
+
+**Violating the letter of the rules is violating the spirit of the rules.**
+
+## When to Use
+
+**Always:**
+- New features
+- Bug fixes
+- Refactoring
+- Behavior changes
+
+**Exceptions (ask your human partner):**
+- Throwaway prototypes
+- Generated code
+- Configuration files
+
+Thinking "skip TDD just this once"? Stop. That's rationalization.
+
+## The Iron Law
+
+\`\`\`
+NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
+\`\`\`
+
+Write code before the test? Delete it. Start over.
+
+## Red-Green-Refactor
+
+### RED - Write Failing Test
+
+Write one minimal test showing what should happen.
+
+### Verify RED - Watch It Fail
+
+**MANDATORY. Never skip.**
+
+Confirm:
+- Test fails (not errors)
+- Failure message is expected
+- Fails because feature missing (not typos)
+
+### GREEN - Minimal Code
+
+Write simplest code to pass the test.
+
+### Verify GREEN - Watch It Pass
+
+**MANDATORY.**
+
+### REFACTOR - Clean Up
+
+After green only:
+- Remove duplication
+- Improve names
+- Extract helpers
+
+Keep tests green. Don't add behavior.
+
+## Good Tests
+
+| Quality | Good | Bad |
+|---------|------|-----|
+| **Minimal** | One thing. "and" in name? Split it. | \`test('validates email and domain and whitespace')\` |
+| **Clear** | Name describes behavior | \`test('test1')\` |
+| **Shows intent** | Demonstrates desired API | Obscures what code should do |
+
+## Final Rule
+
+\`\`\`
+Production code → test exists and failed first
+Otherwise → not TDD
+\`\`\`
+
+No exceptions without your human partner's permission.`,
+        customizationPoints: [
+            'Add language-specific testing frameworks',
+            'Include project-specific test patterns',
+            'Add team TDD practices and conventions'
+        ],
+        dependencies: []
+    },
+    {
+        id: 'systematic-debugging',
+        name: 'Systematic Debugging',
+        description: 'A systematic approach to debugging that helps identify and resolve issues efficiently through methodical investigation.',
+        category: 'development',
+        difficulty: 'Intermediate',
+        tags: ['debugging', 'troubleshooting', 'systematic', 'root-cause'],
+        content: `---
+name: systematic-debugging
+description: "A systematic debugging process that helps identify and resolve issues efficiently."
+---
+
+# Systematic Debugging
 
 ## Overview
 A systematic debugging process that helps identify and resolve issues efficiently.
@@ -56,10 +241,28 @@ A systematic debugging process that helps identify and resolve issues efficientl
    - Test the fix thoroughly
    - Check for regression issues
 
-## Customization Points
-- Add project-specific debugging tools
-- Include team-specific logging practices
-- Adapt for your development environment`,
+## Debugging Techniques
+
+### Defense in Depth
+- Add logging at multiple levels
+- Use assertions to catch assumptions
+- Implement health checks and monitoring
+
+### Root Cause Tracing
+- Follow the data flow
+- Check inputs and outputs at each step
+- Use binary search to isolate the problem
+
+### Condition-Based Waiting
+- Use proper synchronization primitives
+- Avoid busy waiting
+- Handle timeouts gracefully
+
+## Best Practices
+- Keep detailed logs of what you've tried
+- Don't change multiple things at once
+- Test each hypothesis systematically
+- Document the solution for future reference`,
         customizationPoints: [
             'Add project-specific debugging tools',
             'Include team-specific logging practices',
@@ -67,6 +270,227 @@ A systematic debugging process that helps identify and resolve issues efficientl
         ],
         dependencies: []
     },
+    {
+        id: 'using-git-worktrees',
+        name: 'Using Git Worktrees',
+        description: 'Git worktrees allow you to have multiple working directories from the same repository, enabling parallel work on different features or branches.',
+        category: 'workflow',
+        difficulty: 'Intermediate',
+        tags: ['git', 'worktree', 'parallel-development', 'isolation'],
+        content: `---
+name: using-git-worktrees
+description: "Git worktrees for parallel development and feature isolation"
+---
+
+# Using Git Worktrees
+
+## Overview
+
+Git worktrees allow you to have multiple working directories from the same repository, enabling parallel work on different features or branches.
+
+## Basic Commands
+
+### Create a new worktree
+\`\`\`bash
+# Create worktree for existing branch
+git worktree add ../feature-branch feature-branch
+
+# Create worktree with new branch
+git worktree add ../new-feature -b new-feature
+
+# Create worktree from specific commit
+git worktree add ../hotfix-123 -b hotfix-123 main
+\`\`\`
+
+### List worktrees
+\`\`\`bash
+git worktree list
+\`\`\`
+
+### Remove worktree
+\`\`\`bash
+git worktree remove ../feature-branch
+# or manually delete directory and prune
+rm -rf ../feature-branch
+git worktree prune
+\`\`\`
+
+## Benefits
+
+1. **Parallel Development**: Work on multiple features simultaneously
+2. **Clean Isolation**: Each worktree has its own working directory
+3. **Shared Repository**: All worktrees share the same .git repository
+4. **Fast Switching**: No need to stash/unstash when switching contexts
+5. **Testing**: Keep one worktree for testing while developing in another
+
+## Workflow Examples
+
+### Feature Development
+\`\`\`bash
+# Create isolated workspace for new feature
+git worktree add ../cp-ninja-skill-composer -b feature/skill-composer
+
+# Work in the new directory
+cd ../cp-ninja-skill-composer
+# ... develop feature ...
+
+# When done, merge and cleanup
+git checkout main
+git merge feature/skill-composer
+git worktree remove ../cp-ninja-skill-composer
+\`\`\`
+
+### Hotfix While Developing
+\`\`\`bash
+# Continue working in current feature branch
+# Create worktree for urgent hotfix
+git worktree add ../hotfix-urgent -b hotfix/urgent-fix main
+
+cd ../hotfix-urgent
+# ... fix critical issue ...
+git commit -m "Fix critical issue"
+
+# Switch back to feature development
+cd ../original-workspace
+# ... continue feature work ...
+\`\`\`
+
+## Best Practices
+
+- Use relative paths (../name) for worktrees
+- Name worktrees clearly (feature name, branch name)
+- Clean up worktrees when done
+- Don't nest worktrees inside each other
+- Use worktrees for medium to long-term parallel work`,
+        customizationPoints: [
+            'Add team worktree naming conventions',
+            'Include project-specific setup scripts',
+            'Add IDE configuration for worktrees'
+        ],
+        dependencies: []
+    },
+    {
+        id: 'writing-plans',
+        name: 'Writing Implementation Plans',
+        description: 'Create detailed, actionable implementation plans that break down complex features into manageable tasks.',
+        category: 'project-management',
+        difficulty: 'Beginner',
+        tags: ['planning', 'implementation', 'project-breakdown', 'tasks'],
+        content: `---
+name: writing-plans
+description: "Create detailed, actionable implementation plans"
+---
+
+# Writing Implementation Plans
+
+## Overview
+
+Create detailed, actionable implementation plans that break down complex features into manageable tasks.
+
+## Plan Structure
+
+### 1. Feature Overview
+- **Goal**: Clear statement of what we're building
+- **Success Criteria**: How we'll know it's done
+- **Assumptions**: Key assumptions and constraints
+
+### 2. Technical Approach
+- **Architecture**: High-level design decisions
+- **Dependencies**: What needs to exist first
+- **Risk Assessment**: Potential challenges and mitigation
+
+### 3. Implementation Tasks
+Break down into small, manageable tasks:
+
+\`\`\`markdown
+## Phase 1: Foundation
+- [ ] Task 1: Setup basic structure (2h)
+  - Create main component file
+  - Add to navigation
+  - Basic styling
+- [ ] Task 2: Core functionality (4h)
+  - Implement main feature
+  - Add error handling
+  - Write unit tests
+
+## Phase 2: Integration
+- [ ] Task 3: Connect to existing system (3h)
+- [ ] Task 4: Add validation (2h)
+\`\`\`
+
+### 4. Testing Strategy
+- Unit tests for core logic
+- Integration tests for system interaction
+- End-to-end tests for user workflows
+
+### 5. Documentation
+- API documentation updates
+- User guide updates
+- Code comments and README changes
+
+## Task Guidelines
+
+**Good Tasks:**
+- ✅ Specific and actionable
+- ✅ 1-4 hours of work
+- ✅ Clear completion criteria
+- ✅ Dependencies identified
+
+**Bad Tasks:**
+- ❌ "Implement the feature"
+- ❌ Vague or too large
+- ❌ No clear definition of done
+- ❌ Missing dependencies
+
+## Estimation
+
+- **Small (1-2h)**: Simple, well-understood tasks
+- **Medium (3-4h)**: Moderate complexity, some unknowns
+- **Large (5-8h)**: Complex, many moving parts
+- **Epic (>8h)**: Break down further
+
+## Plan Template
+
+\`\`\`markdown
+# [Feature Name] Implementation Plan
+
+## Overview
+**Goal:** [What we're building]
+**Success Criteria:** [How we'll know it's done]
+
+## Technical Approach
+**Architecture:** [Key design decisions]
+**Dependencies:** [What needs to exist first]
+
+## Tasks
+### Phase 1: [Phase Name]
+- [ ] Task 1: [Description] (estimate)
+- [ ] Task 2: [Description] (estimate)
+
+### Phase 2: [Phase Name]
+- [ ] Task 3: [Description] (estimate)
+
+## Testing
+- [ ] Unit tests: [What to test]
+- [ ] Integration tests: [What to test]
+
+## Documentation
+- [ ] API docs: [What to update]
+- [ ] User guide: [What to add]
+
+## Risks & Mitigation
+- **Risk 1:** [Description] → [Mitigation]
+- **Risk 2:** [Description] → [Mitigation]
+\`\`\``,
+        customizationPoints: [
+            'Add team-specific task templates',
+            'Include estimation guidelines',
+            'Add project-specific phases'
+        ],
+        dependencies: []
+    },
+
+    // Original Development Templates
     {
         id: 'code-review-checklist',
         name: 'Code Review Checklist',
@@ -118,57 +542,8 @@ A comprehensive checklist to ensure thorough and effective code reviews.
         ],
         dependencies: []
     },
-    {
-        id: 'tdd-workflow',
-        name: 'Test-Driven Development',
-        description: 'A workflow for implementing features using test-driven development',
-        category: 'development',
-        difficulty: 'Intermediate',
-        tags: ['tdd', 'testing', 'workflow'],
-        content: `# Test-Driven Development Workflow
 
-## Overview
-A structured approach to implementing features using test-driven development.
-
-## The Red-Green-Refactor Cycle
-
-### 1. Red Phase (Write Failing Test)
-- Write a test that fails
-- Test should be minimal and focused
-- Run test to verify it fails
-
-### 2. Green Phase (Make Test Pass)
-- Write minimal code to make test pass
-- Don't worry about perfection
-- Focus on making the test pass
-
-### 3. Refactor Phase (Improve Code)
-- Clean up the code
-- Remove duplication
-- Improve design
-- Ensure tests still pass
-
-## Best Practices
-- Write tests first, always
-- Keep tests small and focused
-- Test behavior, not implementation
-- Refactor regularly
-- Run tests frequently
-
-## Benefits
-- Better code design
-- Comprehensive test coverage
-- Reduced debugging time
-- Increased confidence in changes`,
-        customizationPoints: [
-            'Add project-specific test patterns',
-            'Include testing framework specifics',
-            'Add team TDD practices'
-        ],
-        dependencies: []
-    },
-
-    // Project Management
+    // Project Management Templates
     {
         id: 'sprint-planning',
         name: 'Sprint Planning Process',
@@ -221,78 +596,8 @@ A comprehensive guide for conducting effective sprint planning sessions.
         ],
         dependencies: []
     },
-    {
-        id: 'feature-requirements',
-        name: 'Feature Requirements Template',
-        description: 'A template for documenting feature requirements and acceptance criteria',
-        category: 'project-management',
-        difficulty: 'Beginner',
-        tags: ['requirements', 'documentation', 'features'],
-        content: `# Feature Requirements Template
 
-## Feature Overview
-**Feature Name:** [Feature Name]
-**Priority:** [High/Medium/Low]
-**Epic:** [Related Epic]
-**Requestor:** [Stakeholder/Customer]
-
-## Problem Statement
-Describe the problem this feature solves and why it's important.
-
-## User Stories
-### Primary User Story
-As a [user type], I want [functionality] so that [benefit/value].
-
-### Additional Stories
-- As a [user type], I want [functionality] so that [benefit].
-- As a [user type], I want [functionality] so that [benefit].
-
-## Acceptance Criteria
-- [ ] Criterion 1
-- [ ] Criterion 2
-- [ ] Criterion 3
-
-## Technical Requirements
-### Functional Requirements
-- Requirement 1
-- Requirement 2
-
-### Non-Functional Requirements
-- Performance: [response times, throughput]
-- Security: [authentication, authorization]
-- Scalability: [concurrent users, data volume]
-
-## Dependencies
-- External systems
-- Other features/components
-- Infrastructure requirements
-
-## Assumptions and Constraints
-### Assumptions
-- List key assumptions
-
-### Constraints
-- Technical limitations
-- Business constraints
-- Timeline constraints
-
-## Success Metrics
-- How will success be measured?
-- What are the key performance indicators?
-
-## Risks and Mitigation
-| Risk | Impact | Probability | Mitigation |
-|------|--------|-------------|------------|
-| Risk 1 | High | Low | Mitigation strategy |`,
-        customizationPoints: [
-            'Add company-specific requirement fields',
-            'Include compliance requirements',
-            'Add stakeholder approval workflow'
-        ],
-        dependencies: []
-    },
-
-    // Documentation
+    // Documentation Templates
     {
         id: 'api-documentation',
         name: 'API Documentation Template',
@@ -344,23 +649,6 @@ Retrieve a list of users.
 }
 \`\`\`
 
-### POST /users
-Create a new user.
-
-**Request Body:**
-\`\`\`json
-{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "securepassword"
-}
-\`\`\`
-
-**Response:**
-- **201 Created:** User successfully created
-- **400 Bad Request:** Invalid input data
-- **409 Conflict:** Email already exists
-
 ## Error Handling
 All errors follow a consistent format:
 
@@ -378,12 +666,7 @@ All errors follow a consistent format:
 
 ## Rate Limiting
 - 1000 requests per hour per API key
-- Rate limit headers included in responses
-
-## SDKs and Examples
-- [JavaScript SDK](link-to-js-sdk)
-- [Python SDK](link-to-python-sdk)
-- [cURL Examples](link-to-examples)`,
+- Rate limit headers included in responses`,
         customizationPoints: [
             'Add specific endpoint documentation',
             'Include authentication method details',
@@ -431,21 +714,6 @@ cd project
 npm install
 # or
 pip install -r requirements.txt
-
-# Set up environment variables
-cp .env.example .env
-\`\`\`
-
-### Usage
-
-\`\`\`bash
-# Development
-npm run dev
-# or
-python main.py
-
-# Production
-npm run build && npm start
 \`\`\`
 
 ## Documentation
@@ -453,78 +721,23 @@ npm run build && npm start
 - [User Guide](docs/user-guide.md)
 - [API Documentation](docs/api.md)
 - [Contributing Guide](CONTRIBUTING.md)
-- [Changelog](CHANGELOG.md)
 
 ## Development
-
-### Project Structure
-
-\`\`\`
-project/
-├── src/           # Source code
-├── tests/         # Test files
-├── docs/          # Documentation
-├── scripts/       # Build and deployment scripts
-└── config/        # Configuration files
-\`\`\`
 
 ### Running Tests
 
 \`\`\`bash
 # Run all tests
 npm test
-# or
-pytest
-
-# Run with coverage
-npm run test:coverage
-# or
-pytest --cov
 \`\`\`
-
-### Code Quality
-
-\`\`\`bash
-# Linting
-npm run lint
-# or
-flake8 src/
-
-# Formatting
-npm run format
-# or
-black src/
-\`\`\`
-
-## Deployment
-
-[Include deployment instructions or link to deployment guide]
 
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-1. Fork the repository
-2. Create your feature branch (\`git checkout -b feature/amazing-feature\`)
-3. Commit your changes (\`git commit -m 'Add amazing feature'\`)
-4. Push to the branch (\`git push origin feature/amazing-feature\`)
-5. Open a Pull Request
-
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support
-
-- 📧 Email: support@example.com
-- 💬 Discord: [Join our server](https://discord.gg/example)
-- 🐛 Issues: [GitHub Issues](https://github.com/username/project/issues)
-
-## Acknowledgments
-
-- Thanks to [contributor names]
-- Inspired by [similar projects]
-- Built with [technologies used]`,
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.`,
         customizationPoints: [
             'Add project-specific badges',
             'Include actual installation steps',
@@ -533,3 +746,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
         dependencies: []
     }
 ];
+
+// Export function to get templates by category for dynamic loading
+export const getTemplatesByCategory = (categoryId: string): SkillTemplate[] => {
+    return SKILL_TEMPLATES.filter(template => template.category === categoryId);
+};
+
+// Export function to get template by ID
+export const getTemplateById = (templateId: string): SkillTemplate | undefined => {
+    return SKILL_TEMPLATES.find(template => template.id === templateId);
+};
