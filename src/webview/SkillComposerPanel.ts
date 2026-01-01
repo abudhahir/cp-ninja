@@ -147,11 +147,14 @@ export class SkillComposerPanel {
             const targetDir = await this.getTargetDirectory(saveLocation);
             const suggestedPath = path.join(targetDir, suggestedName, 'SKILL.md');
             
-            // Create new untitled document with the template content
-            const doc = await vscode.workspace.openTextDocument({
-                content: content,
-                language: 'markdown'
-            });
+            // Create new untitled document with suggested filename in tab title
+            const uri = vscode.Uri.parse(`untitled:${suggestedName}${path.sep}SKILL.md`);
+            const doc = await vscode.workspace.openTextDocument(uri);
+            
+            // Set the content after creating the document
+            const edit = new vscode.WorkspaceEdit();
+            edit.insert(uri, new vscode.Position(0, 0), content);
+            await vscode.workspace.applyEdit(edit);
             
             // Show the document in a new editor
             const editor = await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
