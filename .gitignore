@@ -95,3 +95,4 @@ tmp/
 
 # Git worktree
 .git/worktrees/
+.worktrees/
