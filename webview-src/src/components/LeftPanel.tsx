@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { TemplateGallery } from './TemplateGallery';
 import { SkillTemplate, QuickStartMode } from '../types/skill';
 import { useSkillComposer } from '../context/SkillComposerContext';
+import { ImportModal, ImportConfig } from './ImportModal';
 
 export const LeftPanel: React.FC = () => {
     const [quickStartMode, setQuickStartMode] = useState<QuickStartMode>('template');
+    const [showImportModal, setShowImportModal] = useState(false);
     const { loadTemplate } = useSkillComposer();
 
     const handleTemplateSelect = (template: SkillTemplate) => {
@@ -110,13 +112,8 @@ export const LeftPanel: React.FC = () => {
                 });
             }
         } else if (mode === 'import') {
-            // Send message to VS Code to show file picker
-            if (typeof window !== 'undefined' && (window as any).acquireVsCodeApi) {
-                const vscode = (window as any).acquireVsCodeApi();
-                vscode.postMessage({
-                    command: 'importSkill'
-                });
-            }
+            // Open import modal instead of old file picker
+            setShowImportModal(true);
         }
         
         console.log('Quick start mode:', mode);
@@ -145,9 +142,9 @@ export const LeftPanel: React.FC = () => {
             case 'import':
                 return (
                     <div style={placeholderContentStyles}>
-                        <p style={placeholderTextStyles}>Import existing skill</p>
+                        <p style={placeholderTextStyles}>Import skills from repositories or folders</p>
                         <p style={descriptionTextStyles}>
-                            Import a skill from a file or another source to customize and use.
+                            Import skills from Git repositories or local folders with destination selection.
                         </p>
                     </div>
                 );
@@ -197,8 +194,26 @@ export const LeftPanel: React.FC = () => {
             <div style={contentStyles}>
                 {renderContent()}
             </div>
+            
+            {/* Import Modal */}
+            <ImportModal 
+                isOpen={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                onImport={handleImportConfig}
+            />
         </div>
     );
+
+    function handleImportConfig(config: ImportConfig) {
+        // Send import configuration to VS Code
+        if (typeof window !== 'undefined' && (window as any).acquireVsCodeApi) {
+            const vscode = (window as any).acquireVsCodeApi();
+            vscode.postMessage({
+                command: 'importSkills',
+                config: config
+            });
+        }
+    }
 
     function handleSaveAction(location: 'user' | 'project') {
         // Send save command to VS Code

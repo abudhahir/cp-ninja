@@ -89,7 +89,13 @@ export class SkillComposerPanel {
                         await this.handleCreateNewSkill(message);
                         return;
                     case 'importSkill':
-                        await this.handleImportSkill();
+                        await this.handleImportSkillLegacy();
+                        return;
+                    case 'importSkills':
+                        await this.handleImportSkills(message.config);
+                        return;
+                    case 'browseFolder':
+                        await this.handleBrowseFolder(message.messageId);
                         return;
                     case 'saveActiveSkill':
                         await this.handleSaveActiveSkill(message);
@@ -179,7 +185,30 @@ export class SkillComposerPanel {
         }
     }
 
-    private async handleImportSkill() {
+    private async handleBrowseFolder(messageId: number) {
+        try {
+            const folderUri = await vscode.window.showOpenDialog({
+                canSelectFiles: false,
+                canSelectFolders: true,
+                canSelectMany: false,
+                openLabel: 'Select Skills Folder'
+            });
+
+            if (folderUri && folderUri[0]) {
+                // Send the selected path back to webview
+                this.panel.webview.postMessage({
+                    command: 'folderSelected',
+                    messageId: messageId,
+                    path: folderUri[0].fsPath
+                });
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            vscode.window.showErrorMessage(`Failed to browse folder: ${errorMessage}`);
+        }
+    }
+
+    private async handleImportSkills(config: any) {
         try {
             // Show file picker for markdown files
             const fileUri = await vscode.window.showOpenDialog({
@@ -507,6 +536,34 @@ export class SkillComposerPanel {
                 <script nonce="${nonce}" src="${scriptUri}"></script>
             </body>
             </html>`;
+    }
+
+    private async handleImportSkillLegacy() {
+        try {
+            // Show file picker for markdown files (legacy method)
+            const fileUri = await vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: false,
+                canSelectMany: false,
+                filters: {
+                    'Markdown files': ['md', 'markdown'],
+                    'All files': ['*']
+                },
+                openLabel: 'Import Skill'
+            });
+
+            if (fileUri && fileUri[0]) {
+                // Open the selected file
+                const doc = await vscode.workspace.openTextDocument(fileUri[0]);
+                await vscode.window.showTextDocument(doc);
+                
+                vscode.window.showInformationMessage('Skill imported successfully!');
+            }
+
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            vscode.window.showErrorMessage(`Failed to import skill: ${errorMessage}`);
+        }
     }
 }
 
