@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { findSkillsInDir, resolveSkillPath, stripFrontmatter } from './lib/skills-core';
 import { SkillTreeDataProvider, SkillItem } from './SkillsTreeDataProvider'; // Import the new data provider
 import { SuggestionEngine } from './SuggestionEngine'; // Import the SuggestionEngine
+import { SkillComposerPanel } from './webview/SkillComposerPanel';
 
 let extensionBasePath: string; // Declare globally
 
@@ -151,6 +152,11 @@ export function activate(context: vscode.ExtensionContext) {
                 lastSuggestedSkill = suggestion.skillName; // Set last suggested skill to avoid immediate re-suggestion
             });
         }
+    }));
+
+    // Register Skill Composer command
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.openSkillComposer', () => {
+        SkillComposerPanel.createOrShow(context);
     }));
 }
 

@@ -1,0 +1,7 @@
+.vscode/
+.git/
+node_modules/
+*.vsix
+*.log
+cp-ninja-old/
+out/test/

@@ -18,6 +18,13 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "cp-ninja.openSkillComposer",
+        "title": "Open Skill Composer",
+        "category": "Copilot Ninja"
+      }
+    ],
     "chatParticipants": [
       {
         "id": "cp-ninja",
