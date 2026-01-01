@@ -63,6 +63,9 @@ export class SkillComposerPanel {
         // Listen for save events to handle target path saving
         vscode.workspace.onDidSaveTextDocument(this.handleDocumentSave, this, this.disposables);
         
+        // Listen for document close events to clean up tracking
+        vscode.workspace.onDidCloseTextDocument(this.handleDocumentClose, this, this.disposables);
+        
         // Listen for active editor changes to update status bar
         vscode.window.onDidChangeActiveTextEditor(this.handleActiveEditorChange, this, this.disposables);
 
@@ -356,6 +359,21 @@ export class SkillComposerPanel {
             this.showTargetPathInStatusBar(targetInfo.suggestedPath, targetInfo.saveLocation);
         } else {
             this.hideStatusBar();
+        }
+    }
+    
+    private handleDocumentClose(document: vscode.TextDocument) {
+        // Clean up tracking when documents are closed
+        const targetInfo = this.getDocumentTargetInfo(document);
+        if (targetInfo) {
+            // Remove from tracking
+            this.documentTargets.delete(document.uri.toString());
+            
+            // If this was the active document, hide status bar
+            const activeEditor = vscode.window.activeTextEditor;
+            if (!activeEditor || activeEditor.document.uri.toString() === document.uri.toString()) {
+                this.hideStatusBar();
+            }
         }
     }
     
