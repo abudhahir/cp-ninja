@@ -71,4 +71,17 @@ export class ProfileManager {
             throw new Error(`Failed to set active profile '${profileName}': ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
+
+    async createProfile(profile: ProfileConfig): Promise<void> {
+        try {
+            const profilePath = path.join(this.globalDir, 'profiles', `${profile.name}.json`);
+            
+            // Ensure profiles directory exists
+            await fs.promises.mkdir(path.join(this.globalDir, 'profiles'), { recursive: true });
+            
+            await fs.promises.writeFile(profilePath, JSON.stringify(profile, null, 2), 'utf8');
+        } catch (error) {
+            throw new Error(`Failed to create profile '${profile.name}': ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
 }

@@ -6,8 +6,12 @@ import { SkillTreeDataProvider } from './SkillsTreeDataProvider'; // Import the 
 import { SuggestionEngine } from './SuggestionEngine'; // Import the SuggestionEngine
 import { SkillComposerPanel } from './webview/SkillComposerPanel';
 import { ResourceManager } from './ResourceManager';
+import { BootstrapManager } from './BootstrapManager';
+import { ContextDetector } from './ContextDetector';
+import { ProfileChatHandler } from './ProfileChatHandler';
 
 let extensionBasePath: string; // Declare globally
+let profileChatHandler: ProfileChatHandler; // Profile chat handler instance
 
 // Define the chat handler for our @cp-ninja participant
 const chatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRequest, context: vscode.ChatContext, stream: vscode.ChatResponseStream): Promise<vscode.ChatResult> => {
@@ -24,6 +28,17 @@ const chatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatReques
             stream.markdown('Welcome to Copilot Ninja! The `using-cp-ninja` bootstrap skill could not be found.');
         }
         return {};
+    }
+
+    // Handle profile-related commands first
+    if (request.command === 'switch-profile' || request.command === 'list-profiles' || request.command === 'technical-analysis') {
+        try {
+            await profileChatHandler.handleProfileCommand(request, stream);
+            return {};
+        } catch (error) {
+            stream.markdown(`❌ Profile command error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            return {};
+        }
     }
 
     // Command handling - parse commands from the prompt text
@@ -55,9 +70,15 @@ const chatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatReques
         return {};
     }
     
-    // Default behavior if no command is matched - could be to pass through to the default agent
-    // For now, we'll just indicate that a command is needed.
-    stream.markdown("I am the @cp-ninja participant. Please use `/use_skill` or `/find_skills`.");
+    // Enhanced help message including profile commands
+    stream.markdown("I am the @cp-ninja participant. Available commands:\n\n" +
+        "**Skill Commands:**\n" +
+        "- `/use_skill <skill-name>` - Activate a specific skill\n" +
+        "- `/find_skills` - List all available skills\n\n" +
+        "**Profile Commands:**\n" +
+        "- `@cp-ninja switch-profile <profile-name>` - Switch to a development profile\n" +
+        "- `@cp-ninja list-profiles` - List available profiles\n" +
+        "- `@cp-ninja technical-analysis <requirement>` - Start technical analysis workflow");
 
     return {};
 };
@@ -67,16 +88,20 @@ export function activate(context: vscode.ExtensionContext) {
 
     extensionBasePath = context.extensionPath; // Store the extension path
 
-    // Initialize ResourceManager and directories
+    // Initialize ProfileChatHandler
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
     if (workspaceFolder) {
-        const resourceManager = new ResourceManager(workspaceFolder.uri.fsPath);
-        resourceManager.initializeDirectories().catch(error => {
-            console.error('Failed to initialize resource directories:', error);
-            vscode.window.showWarningMessage(
-                'CP-Ninja: Failed to initialize resource directories. Some features may not work correctly.'
-            );
-        });
+        const workspacePath = workspaceFolder.uri.fsPath;
+        const globalDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja');
+        const projectDir = path.join(workspacePath, '.cp-ninja');
+        const agentsDir = path.join(globalDir, 'agents');
+        
+        profileChatHandler = new ProfileChatHandler(workspacePath, globalDir, projectDir, agentsDir);
+    }
+
+    // Initialize CP-Ninja Bootstrap System
+    if (workspaceFolder) {
+        initializeCpNinjaBootstrap(workspaceFolder.uri.fsPath, context);
     }
 
     // Register the chat participant
@@ -99,7 +124,15 @@ export function activate(context: vscode.ExtensionContext) {
     // Register command for the status bar item
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showCommands', async () => {
         const pick = await vscode.window.showQuickPick(
-            [{ label: 'Find Skills', description: 'List all available skills' }, { label: 'Use Skill...', description: 'Invoke a specific skill' }],
+            [
+                { label: 'Find Skills', description: 'List all available skills' }, 
+                { label: 'Use Skill...', description: 'Invoke a specific skill' },
+                { label: 'Switch Profile...', description: 'Switch to a development profile' },
+                { label: 'List Profiles', description: 'Show available development profiles' },
+                { label: 'Technical Analysis...', description: 'Start technical analysis workflow' },
+                { label: 'Bootstrap Project', description: 'Setup project with recommended presets' },
+                { label: 'Detect Context', description: 'Analyze current project context' }
+            ],
             { placeHolder: 'Select a Copilot Ninja command' }
         );
 
@@ -118,6 +151,31 @@ export function activate(context: vscode.ExtensionContext) {
                     await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
                     vscode.window.showInformationMessage(`In the chat view, type: @cp-ninja /use_skill ${skillName}`);
                 }
+            } else if (pick.label === 'Switch Profile...') {
+                const profileName = await vscode.window.showInputBox({
+                    prompt: 'Enter the name of the profile to switch to',
+                    placeHolder: 'e.g., frontend-development, backend-api, technical-analysis'
+                });
+                if (profileName) {
+                    await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
+                    vscode.window.showInformationMessage(`In the chat view, type: @cp-ninja switch-profile ${profileName}`);
+                }
+            } else if (pick.label === 'List Profiles') {
+                await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
+                vscode.window.showInformationMessage('In the chat view, type: @cp-ninja list-profiles');
+            } else if (pick.label === 'Technical Analysis...') {
+                const requirement = await vscode.window.showInputBox({
+                    prompt: 'Enter the requirement to analyze',
+                    placeHolder: 'e.g., Build a user authentication system'
+                });
+                if (requirement) {
+                    await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
+                    vscode.window.showInformationMessage(`In the chat view, type: @cp-ninja technical-analysis ${requirement}`);
+                }
+            } else if (pick.label === 'Bootstrap Project') {
+                await vscode.commands.executeCommand('cp-ninja.bootstrap');
+            } else if (pick.label === 'Detect Context') {
+                await vscode.commands.executeCommand('cp-ninja.detectContext');
             }
         }
     }));
@@ -179,6 +237,130 @@ export function activate(context: vscode.ExtensionContext) {
             await SkillComposerPanel.currentPanel.showTargetPathCommand();
         }
     }));
+}
+
+async function initializeCpNinjaBootstrap(workspacePath: string, context: vscode.ExtensionContext): Promise<void> {
+    try {
+        const bootstrapManager = new BootstrapManager(workspacePath);
+        const contextDetector = new ContextDetector(workspacePath);
+
+        // Initialize the bootstrap system
+        await bootstrapManager.initialize();
+        console.log('CP-Ninja: Bootstrap system initialized successfully');
+
+        // Detect project context and suggest presets
+        const projectContext = await contextDetector.analyzeProject();
+        const suggestions = await bootstrapManager.suggestPresets(projectContext);
+
+        // If we have high-confidence suggestions, offer them to the user
+        if (suggestions.length > 0 && suggestions[0].confidence > 0.8) {
+            const topSuggestion = suggestions[0];
+            
+            const action = await vscode.window.showInformationMessage(
+                `CP-Ninja: Detected ${topSuggestion.reason.toLowerCase()}. Would you like to bootstrap with the "${topSuggestion.preset}" profile?`,
+                'Yes, Bootstrap',
+                'Not Now',
+                'Show All Suggestions'
+            );
+
+            if (action === 'Yes, Bootstrap') {
+                const result = await bootstrapManager.bootstrapProject(projectContext);
+                if (result.success) {
+                    vscode.window.showInformationMessage(
+                        `CP-Ninja: Successfully bootstrapped with ${result.appliedPresets.join(', ')} profile(s)!`
+                    );
+                } else {
+                    vscode.window.showWarningMessage(
+                        `CP-Ninja: Bootstrap completed with some issues: ${result.errors?.join(', ') || 'Unknown errors'}`
+                    );
+                }
+            } else if (action === 'Show All Suggestions') {
+                const selected = await vscode.window.showQuickPick(
+                    suggestions.map(s => ({
+                        label: s.preset,
+                        description: `${(s.confidence * 100).toFixed(0)}% confidence`,
+                        detail: s.reason,
+                        suggestion: s
+                    })),
+                    {
+                        placeHolder: 'Select a preset to bootstrap with',
+                        ignoreFocusOut: true
+                    }
+                );
+
+                if (selected) {
+                    const result = await bootstrapManager.bootstrapProject(projectContext);
+                    if (result.success) {
+                        vscode.window.showInformationMessage(
+                            `CP-Ninja: Successfully bootstrapped with ${selected.label} profile!`
+                        );
+                    }
+                }
+            }
+        }
+
+        // Register bootstrap-related commands
+        context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.bootstrap', async () => {
+            const currentContext = await contextDetector.analyzeProject();
+            const currentSuggestions = await bootstrapManager.suggestPresets(currentContext);
+            
+            if (currentSuggestions.length === 0) {
+                vscode.window.showInformationMessage('CP-Ninja: No suitable presets found for current project context.');
+                return;
+            }
+
+            const selected = await vscode.window.showQuickPick(
+                currentSuggestions.map(s => ({
+                    label: s.preset,
+                    description: `${(s.confidence * 100).toFixed(0)}% confidence`,
+                    detail: s.reason,
+                    suggestion: s
+                })),
+                {
+                    placeHolder: 'Select a preset to bootstrap with',
+                    ignoreFocusOut: true
+                }
+            );
+
+            if (selected) {
+                const result = await bootstrapManager.bootstrapProject(currentContext);
+                if (result.success) {
+                    vscode.window.showInformationMessage(
+                        `CP-Ninja: Successfully bootstrapped with ${selected.label} profile!`
+                    );
+                } else {
+                    vscode.window.showWarningMessage(
+                        `CP-Ninja: Bootstrap failed: ${result.errors?.join(', ') || 'Unknown error'}`
+                    );
+                }
+            }
+        }));
+
+        context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.detectContext', async () => {
+            const currentContext = await contextDetector.analyzeProject();
+            const contextInfo = [
+                `Languages: ${currentContext.language.join(', ') || 'None detected'}`,
+                `Frameworks: ${currentContext.frameworks.join(', ') || 'None detected'}`,
+                `Project Type: ${currentContext.projectType || 'Unknown'}`,
+                `Recent Activity: ${currentContext.recentActivity.join(', ') || 'None detected'}`,
+                `Team Indicators: ${currentContext.teamIndicators.length} found`
+            ].join('\n');
+
+            vscode.window.showInformationMessage(`CP-Ninja Project Context:\n${contextInfo}`, { modal: true });
+        }));
+
+    } catch (error) {
+        console.error('CP-Ninja: Failed to initialize bootstrap system:', error);
+        vscode.window.showWarningMessage(
+            'CP-Ninja: Failed to initialize advanced features. Basic functionality will still work.'
+        );
+        
+        // Fallback to basic ResourceManager initialization
+        const resourceManager = new ResourceManager(workspacePath);
+        resourceManager.initializeDirectories().catch(fallbackError => {
+            console.error('CP-Ninja: Fallback initialization also failed:', fallbackError);
+        });
+    }
 }
 
 export function deactivate() {}
