@@ -52,6 +52,7 @@ export class ContextDetector {
             if (deps.angular) frameworks.push('angular');
             if (deps.express) frameworks.push('express');
             if (deps.fastify) frameworks.push('fastify');
+            if (deps['@nestjs/core']) frameworks.push('nest');
             
             return frameworks;
         } catch (error) {
