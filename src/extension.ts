@@ -45,9 +45,10 @@ const mainChatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRe
     // Handle profile queries via the ProfileChatHandler
     if (profileChatHandler) {
         try {
-            const profileResult = await profileChatHandler.handleProfileQuery(request.prompt, stream);
-            if (profileResult.handled) {
-                return profileResult.result;
+            // Check if this is a profile command and handle it
+            if (request.command && ['switch-profile', 'list-profiles', 'technical-analysis'].includes(request.command)) {
+                await profileChatHandler.handleProfileCommand(request, stream);
+                return {};
             }
         } catch (error) {
             console.error('Profile chat handler error:', error);
@@ -84,10 +85,11 @@ export function activate(context: vscode.ExtensionContext) {
     try {
         const resourceManager = new ResourceManager(context.extensionPath);
         const contextDetector = new ContextDetector(context.extensionPath);
-        const bootstrapManager = new BootstrapManager(context.extensionPath, resourceManager, contextDetector);
+        const bootstrapManager = new BootstrapManager(context.extensionPath);
         
         // Initialize ProfileChatHandler
-        profileChatHandler = new ProfileChatHandler(resourceManager, contextDetector, bootstrapManager);
+        const agentsDir = path.join(context.extensionPath, 'templates', 'agents');
+        profileChatHandler = new ProfileChatHandler(context.extensionPath, path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja'), context.extensionPath, agentsDir);
         
         console.log('Resources system initialized successfully');
     } catch (error) {
