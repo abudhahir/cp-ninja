@@ -9,5 +9,7 @@ describe('ResourceManager', () => {
         const homeDir = process.env.HOME || process.env.USERPROFILE || '';
         expect(directories.globalDir).toBe(path.join(homeDir, '.cp-ninja'));
         expect(directories.projectDir).toBe('/test/workspace/.cp-ninja');
+        expect(directories.profilesDir).toBe(path.join(homeDir, '.cp-ninja', 'profiles'));
+        expect(directories.agentsDir).toBe(path.join(homeDir, '.cp-ninja', 'resources', 'agents'));
     });
 });

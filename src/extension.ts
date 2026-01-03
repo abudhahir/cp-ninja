@@ -5,6 +5,7 @@ import { findSkillsInDir, resolveSkillPath, stripFrontmatter } from './lib/skill
 import { SkillTreeDataProvider } from './SkillsTreeDataProvider'; // Import the new data provider
 import { SuggestionEngine } from './SuggestionEngine'; // Import the SuggestionEngine
 import { SkillComposerPanel } from './webview/SkillComposerPanel';
+import { ResourceManager } from './ResourceManager';
 
 let extensionBasePath: string; // Declare globally
 
@@ -65,6 +66,15 @@ export function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, your extension "cp-ninja" is now active!');
 
     extensionBasePath = context.extensionPath; // Store the extension path
+
+    // Initialize ResourceManager and directories
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (workspaceFolder) {
+        const resourceManager = new ResourceManager(workspaceFolder.uri.fsPath);
+        resourceManager.initializeDirectories().catch(error => {
+            console.error('Failed to initialize resource directories:', error);
+        });
+    }
 
     // Register the chat participant
     const participant = vscode.chat.createChatParticipant('cp-ninja', chatHandler);
