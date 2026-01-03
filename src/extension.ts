@@ -5,29 +5,30 @@ import { findSkillsInDir, resolveSkillPath, stripFrontmatter } from './lib/skill
 import { SkillTreeDataProvider } from './SkillsTreeDataProvider'; // Import the new data provider
 import { SuggestionEngine } from './SuggestionEngine'; // Import the SuggestionEngine
 import { SkillComposerPanel } from './webview/SkillComposerPanel';
+import { ResourceManager } from './ResourceManager';
+import { BootstrapManager } from './BootstrapManager';
+import { ContextDetector } from './ContextDetector';
+import { ProfileChatHandler } from './ProfileChatHandler';
 
 let extensionBasePath: string; // Declare globally
+let profileChatHandler: ProfileChatHandler; // Profile chat handler instance
 
-// Create a chat handler for a specific skill
-const createSkillChatHandler = (skillName: string, skillsDir: string, personalSkillsDir: string): vscode.ChatRequestHandler => {
-    return async (request: vscode.ChatRequest, context: vscode.ChatContext, stream: vscode.ChatResponseStream): Promise<vscode.ChatResult> => {
-        const skill = resolveSkillPath(skillName, skillsDir, personalSkillsDir);
-        if (skill) {
-            const skillContent = fs.readFileSync(skill.skillFile, 'utf8');
-            stream.markdown(`**Using skill: ${skillName}**\n\n` + stripFrontmatter(skillContent));
-        } else {
-            stream.markdown(`Sorry, I could not find the skill "${skillName}".`);
-        }
-        return {};
-    };
-};
-
-// Define the main chat handler for @cp-ninja participant
+// Define the main chat handler for @cp-ninja participant  
 const mainChatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRequest, context: vscode.ChatContext, stream: vscode.ChatResponseStream): Promise<vscode.ChatResult> => {
     const skillsDir = path.join(extensionBasePath, 'skills');
     const personalSkillsDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja', 'skills');
 
-    // Check if a specific skill command is being used
+    // Bootstrap: On the first turn, inject the using-cp-ninja skill
+    if (context.history.length === 0) {
+        const bootstrapSkillPath = resolveSkillPath('using-cp-ninja', skillsDir, personalSkillsDir);
+        if (bootstrapSkillPath) {
+            const bootstrapContent = fs.readFileSync(bootstrapSkillPath.skillFile, 'utf8');
+            stream.markdown(stripFrontmatter(bootstrapContent));
+            return {};
+        }
+    }
+
+    // Handle slash commands for specific skills
     if (request.command) {
         const skillName = request.command;
         const skill = resolveSkillPath(skillName, skillsDir, personalSkillsDir);
@@ -41,7 +42,20 @@ const mainChatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRe
         }
     }
 
-    // Show available skills and usage instructions
+    // Handle profile queries via the ProfileChatHandler
+    if (profileChatHandler) {
+        try {
+            const profileResult = await profileChatHandler.handleProfileQuery(request.prompt, stream);
+            if (profileResult.handled) {
+                return profileResult.result;
+            }
+        } catch (error) {
+            console.error('Profile chat handler error:', error);
+            // Continue to default handling if profile handler fails
+        }
+    }
+
+    // Show available skills and usage instructions (default behavior)
     const cpNinjaSkills = findSkillsInDir(skillsDir, 'cp-ninja');
     const personalSkills = findSkillsInDir(personalSkillsDir, 'personal');
     const allSkills = [...cpNinjaSkills, ...personalSkills];
@@ -65,6 +79,21 @@ export function activate(context: vscode.ExtensionContext) {
 
     const skillsDir = path.join(context.extensionPath, 'skills');
     const personalSkillsDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja', 'skills');
+    
+    // Initialize the resources system
+    try {
+        const resourceManager = new ResourceManager(context.extensionPath);
+        const contextDetector = new ContextDetector(context.extensionPath);
+        const bootstrapManager = new BootstrapManager(context.extensionPath, resourceManager, contextDetector);
+        
+        // Initialize ProfileChatHandler
+        profileChatHandler = new ProfileChatHandler(resourceManager, contextDetector, bootstrapManager);
+        
+        console.log('Resources system initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize resources system:', error);
+        // Continue without resources system if initialization fails
+    }
     
     // Register the main chat participant
     const mainParticipant = vscode.chat.createChatParticipant('cp-ninja', mainChatHandler);
