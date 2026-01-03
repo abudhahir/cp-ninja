@@ -12,13 +12,14 @@ export class ProfileManager {
         try {
             const profilePath = path.join(this.globalDir, 'profiles', `${profileName}.json`);
             
-            if (fs.existsSync(profilePath)) {
-                return this.loadProfile(profilePath);
+            try {
+                await fs.promises.access(profilePath); // Replace fs.existsSync
+                return await this.loadProfile(profilePath);
+            } catch {
+                return null; // File doesn't exist or not accessible
             }
-            
-            return null;
         } catch (error) {
-            throw new Error(`Failed to resolve profile '${profileName}': ${error instanceof Error ? error.message : 'Unknown error'}`);
+            throw new Error(`Failed to resolve profile ${profileName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
 
@@ -27,9 +28,18 @@ export class ProfileManager {
             const content = await fs.promises.readFile(profilePath, 'utf8');
             const parsed = JSON.parse(content);
             
-            // Basic validation
-            if (!parsed.name || !Array.isArray(parsed.skills)) {
-                throw new Error('Invalid profile format');
+            // Comprehensive validation
+            if (!parsed.name || typeof parsed.name !== 'string') {
+                throw new Error('Profile missing required field: name');
+            }
+            if (!Array.isArray(parsed.skills)) {
+                throw new Error('Profile missing required field: skills (array)');
+            }
+            if (!Array.isArray(parsed.agentTemplates)) {
+                throw new Error('Profile missing required field: agentTemplates (array)');
+            }
+            if (!parsed.autoActivate || typeof parsed.autoActivate !== 'object') {
+                throw new Error('Profile missing required field: autoActivate (object)');
             }
             
             return parsed as ProfileConfig;
@@ -42,14 +52,14 @@ export class ProfileManager {
         try {
             const activeProfilePath = path.join(this.projectDir, 'active-profile');
             
-            if (fs.existsSync(activeProfilePath)) {
+            try {
                 const content = await fs.promises.readFile(activeProfilePath, 'utf8');
                 return content.trim();
+            } catch {
+                return null; // File doesn't exist
             }
-            
-            return null;
         } catch (error) {
-            throw new Error(`Failed to get active profile name: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            throw new Error(`Failed to get active profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
 

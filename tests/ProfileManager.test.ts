@@ -18,9 +18,9 @@ describe('ProfileManager', () => {
             }
         };
 
-        // Mock fs.existsSync to return true
+        // Mock fs.promises.access to succeed and loadProfile to return mockProfile
         const fs = require('fs');
-        jest.spyOn(fs, 'existsSync').mockReturnValue(true);
+        jest.spyOn(fs.promises, 'access').mockResolvedValue(undefined);
         jest.spyOn(profileManager as any, 'loadProfile').mockResolvedValue(mockProfile);
         
         const resolved = await profileManager.resolveActiveProfile('frontend-dev');
