@@ -73,6 +73,9 @@ export function activate(context: vscode.ExtensionContext) {
         const resourceManager = new ResourceManager(workspaceFolder.uri.fsPath);
         resourceManager.initializeDirectories().catch(error => {
             console.error('Failed to initialize resource directories:', error);
+            vscode.window.showWarningMessage(
+                'CP-Ninja: Failed to initialize resource directories. Some features may not work correctly.'
+            );
         });
     }
 

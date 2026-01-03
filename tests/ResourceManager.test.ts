@@ -12,4 +12,10 @@ describe('ResourceManager', () => {
         expect(directories.profilesDir).toBe(path.join(homeDir, '.cp-ninja', 'profiles'));
         expect(directories.agentsDir).toBe(path.join(homeDir, '.cp-ninja', 'resources', 'agents'));
     });
+
+    test('should handle directory creation errors gracefully', async () => {
+        const resourceManager = new ResourceManager('/invalid/path/that/cannot/be/created');
+        
+        await expect(resourceManager.initializeDirectories()).rejects.toThrow('Failed to create directory');
+    });
 });

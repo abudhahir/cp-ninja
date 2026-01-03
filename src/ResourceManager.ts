@@ -26,8 +26,12 @@ export class ResourceManager {
     }
 
     private async ensureDirectory(dirPath: string): Promise<void> {
-        if (!fs.existsSync(dirPath)) {
-            await fs.promises.mkdir(dirPath, { recursive: true });
+        try {
+            if (!fs.existsSync(dirPath)) {
+                await fs.promises.mkdir(dirPath, { recursive: true });
+            }
+        } catch (error: any) {
+            throw new Error(`Failed to create directory ${dirPath}: ${error.message}`);
         }
     }
 }
