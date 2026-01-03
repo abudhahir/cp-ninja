@@ -1,6 +1,6 @@
 {
   "name": "cp-ninja-webview",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "scripts": {
     "build": "webpack --mode production",
     "watch": "webpack --mode development --watch",
@@ -8,9 +8,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "@monaco-editor/react": "^4.6.0",
     "@reduxjs/toolkit": "^1.9.0",
-    "monaco-editor": "^0.44.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-redux": "^8.0.0"
@@ -36,7 +34,9 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "jsdom",
-    "setupFilesAfterEnv": ["<rootDir>/src/setupTests.ts"],
+    "setupFilesAfterEnv": [
+      "<rootDir>/src/setupTests.ts"
+    ],
     "moduleNameMapper": {
       "\\.(css|less|scss|sass)$": "identity-obj-proxy"
     }

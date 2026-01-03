@@ -2,6 +2,8 @@
 
 This project is a conceptual port of the "Superpowers" skill system to a GitHub Copilot plugin (for use with VS Code/IntelliJ Copilot plugins). The goal is to allow Copilot to leverage a structured library of "skills" to guide its behavior and enforce development best practices.
 
+For an understanding of the core concepts, see [Skills vs Agents](./doc/skills-vs-agents.md).
+
 ## Installation
 
 For detailed setup and installation instructions, please see the [Installation Guide](./doc/installation.md).
@@ -20,38 +22,41 @@ This project is implemented as a **Chat Participant** extension for VS Code, pro
 ### Usage
 
 1.  Open the Chat view in VS Code.
-2.  Start an interaction by mentioning the participant: `@cp-ninja`
-3.  Use commands within the chat to interact with the skill system:
-    *   `@cp-ninja /find_skills`: Lists all available skills.
-    *   `@cp-ninja /use_skill <skill_name>`: Loads a specific skill into the conversation.
+2.  Type `@cp-ninja:` to see all available skills with autocomplete
+3.  Select a specific skill to activate it immediately:
+    *   `@cp-ninja:brainstorming`: Activate the brainstorming skill
+    *   `@cp-ninja:systematic-debugging`: Activate systematic debugging
+    *   `@cp-ninja:test-driven-development`: Activate TDD workflow
+4.  Or use the main participant `@cp-ninja` to see all available skills
 
 ### How it Works
 
-*   **`@cp-ninja` Chat Participant:** The extension registers a single chat participant named `@cp-ninja` which handles all interactions.
-*   **Command Parsing:** The participant's handler in `src/extension.ts` parses commands like `/use_skill` and `/find_skills` from the user's chat message.
-*   **Dynamic Skill Loading:** Based on the command, the handler uses the `skills-core.js` library to find the appropriate `SKILL.md` file and injects its content directly into the chat conversation.
-*   **Bootstrap:** When a new chat session with `@cp-ninja` begins, the `using-cp-ninja` skill is automatically loaded to provide initial instructions.
+*   **Individual Skill Participants:** Each skill has its own chat participant (e.g., `@cp-ninja:brainstorming`) for direct activation
+*   **Main Participant:** `@cp-ninja` shows all available skills and usage instructions
+*   **Discoverable Interface:** Typing `@cp-ninja:` triggers autocomplete showing all skills
+*   **Dynamic Registration:** Skills are automatically discovered and registered as participants
+*   **Instant Activation:** Select any skill participant to immediately load its content
 
-## Skill Composer
+## Skills Details View
 
-CP-Ninja includes a **Skill Composer** that provides a native VS Code integrated experience for creating and managing skills with full GitHub Copilot support.
+CP-Ninja includes a **Skills Details View** that provides a native VS Code experience for browsing and exploring skills with integrated chat activation.
 
 ### 🚀 Getting Started
 
 1. Open the command palette (`Ctrl+Shift+P`)
-2. Run `CP-Ninja: Open Skill Composer`
-3. Choose your starting point:
-   - **Templates**: Browse existing cp-ninja skills
-   - **From Scratch**: Start with a comprehensive template
-   - **Import**: Import existing markdown files
+2. Run `CP-Ninja: Show Details`
+3. Browse available skills:
+   - **Full-width Gallery**: View all cp-ninja skills in organized categories
+   - **Click to Preview**: View detailed markdown content for any skill
+   - **Use Skill Button**: Instantly activate skills in GitHub Copilot Chat
 
 ### ✨ Key Features
 
-- **Native Editor Integration**: Skills open in VS Code's markdown editor with full Copilot support
-- **Template Gallery**: Browse and use existing skills as starting points
-- **Placeholder System**: Templates use `[PLACEHOLDER]` format for easy customization
-- **Dual Save Options**: Save to user (`~/.cp-ninja/skills`) or project (`.cp-ninja/skills`) directories
-- **AI-Powered Editing**: Full GitHub Copilot integration while writing skills
+- **Visual Skill Browser**: Browse skills with tags, descriptions, and difficulty levels
+- **Markdown Preview**: View full skill content with proper formatting
+- **One-Click Activation**: "Use Skill" button opens chat with skill ready to use
+- **Category Filtering**: Filter skills by type (development, testing, planning, etc.)
+- **Seamless Integration**: Direct connection to GitHub Copilot Chat system
 
 ### 🏗️ Skill Template Structure
 

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { SkillTemplate } from '../types/skill';
+import { vsCodeApi } from '../services/vsCodeApiService';
 
 interface SkillComposerState {
     selectedTemplate: SkillTemplate | null;
@@ -39,13 +40,10 @@ export const SkillComposerProvider: React.FC<SkillComposerProviderProps> = ({ ch
         setIsDirty(false);
         
         // Send message to VS Code extension
-        if (typeof window !== 'undefined' && (window as any).acquireVsCodeApi) {
-            const vscode = (window as any).acquireVsCodeApi();
-            vscode.postMessage({
-                command: 'templateSelected',
-                template: template
-            });
-        }
+        vsCodeApi.postMessage({
+            command: 'templateSelected',
+            template: template
+        });
     };
 
     const handleSetSkillContent = (content: string) => {

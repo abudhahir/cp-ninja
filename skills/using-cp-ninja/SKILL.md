@@ -13,7 +13,9 @@ This is not negotiable. This is not optional. You cannot rationalize your way ou
 
 ## How to Access Skills
 
-To use a skill, type `@cp-ninja /use_skill <skill_name>`. The skill's instructions will be loaded into the chat for you to follow.
+To use a skill, type `@cp-ninja:skill-name` (e.g., `@cp-ninja:brainstorming`). When you type `@cp-ninja:` you'll see autocomplete suggestions for all available skills. Select any skill to immediately activate it.
+
+Alternatively, use `@cp-ninja` to see a list of all available skills.
 
 # Using Skills
 

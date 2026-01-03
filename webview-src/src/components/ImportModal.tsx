@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { vsCodeApi } from '../services/vsCodeApiService';
 
 interface ImportModalProps {
     isOpen: boolean;
@@ -84,15 +85,12 @@ export const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, onImp
 
     const handleBrowseFolder = () => {
         // Send message to VS Code to open folder dialog
-        if (typeof window !== 'undefined' && (window as any).acquireVsCodeApi) {
-            const vscode = (window as any).acquireVsCodeApi();
-            const messageId = Date.now();
-            setPendingMessageId(messageId);
-            vscode.postMessage({
-                command: 'browseFolder',
-                messageId: messageId
-            });
-        }
+        const messageId = Date.now();
+        setPendingMessageId(messageId);
+        vsCodeApi.postMessage({
+            command: 'browseFolder',
+            messageId: messageId
+        });
     };
 
     return (

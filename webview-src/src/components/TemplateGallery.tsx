@@ -15,23 +15,6 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({ onTemplateSele
         : SKILL_TEMPLATES.filter(template => template.category === selectedCategory);
 
     const handleTemplateClick = (template: SkillTemplate) => {
-        // Default behavior: create as user skill
-        handleTemplateAction(template, 'user');
-    };
-
-    const handleTemplateAction = (template: SkillTemplate, location: 'user' | 'project') => {
-        if (typeof window !== 'undefined' && (window as any).acquireVsCodeApi) {
-            const vscode = (window as any).acquireVsCodeApi();
-            vscode.postMessage({
-                command: 'createNewSkill',
-                content: template.content,
-                templateName: template.name,
-                mode: 'template',
-                saveLocation: location
-            });
-        }
-        
-        // Also call the original handler for compatibility
         onTemplateSelect?.(template);
     };
 
@@ -136,30 +119,6 @@ export const TemplateGallery: React.FC<TemplateGalleryProps> = ({ onTemplateSele
                                     borderColor: 'var(--vscode-panel-border)'
                                 }}>+{template.tags.length - 3}</span>
                             )}
-                        </div>
-                        
-                        {/* Action Buttons */}
-                        <div style={actionButtonsContainerStyles}>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleTemplateAction(template, 'user');
-                                }}
-                                style={userSkillButtonStyles}
-                                title="Create as User Skill"
-                            >
-                                👤 User
-                            </button>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleTemplateAction(template, 'project');
-                                }}
-                                style={projectSkillButtonStyles}
-                                title="Create as Project Skill"
-                            >
-                                📁 Project
-                            </button>
                         </div>
                     </div>
                 ))}
@@ -298,38 +257,4 @@ const tagStyles: React.CSSProperties = {
     textTransform: 'lowercase' as const,
     letterSpacing: '0.02em',
     lineHeight: '1.2'
-};
-
-const actionButtonsContainerStyles: React.CSSProperties = {
-    display: 'flex',
-    gap: '4px',
-    marginTop: '8px',
-    paddingTop: '8px',
-    borderTop: '1px solid var(--vscode-panel-border)'
-};
-
-const userSkillButtonStyles: React.CSSProperties = {
-    flex: 1,
-    padding: '4px 8px',
-    fontSize: '10px',
-    fontFamily: 'var(--vscode-font-family)',
-    border: '1px solid var(--vscode-button-border)',
-    borderRadius: '3px',
-    backgroundColor: 'var(--vscode-button-background)',
-    color: 'var(--vscode-button-foreground)',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease'
-};
-
-const projectSkillButtonStyles: React.CSSProperties = {
-    flex: 1,
-    padding: '4px 8px',
-    fontSize: '10px',
-    fontFamily: 'var(--vscode-font-family)',
-    border: '1px solid var(--vscode-button-border)',
-    borderRadius: '3px',
-    backgroundColor: 'var(--vscode-button-secondaryBackground)',
-    color: 'var(--vscode-button-secondaryForeground)',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease'
 };

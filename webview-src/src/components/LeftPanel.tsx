@@ -3,6 +3,7 @@ import { TemplateGallery } from './TemplateGallery';
 import { SkillTemplate, QuickStartMode } from '../types/skill';
 import { useSkillComposer } from '../context/SkillComposerContext';
 import { ImportModal, ImportConfig } from './ImportModal';
+import { vsCodeApi } from '../services/vsCodeApiService';
 
 export const LeftPanel: React.FC = () => {
     const [quickStartMode, setQuickStartMode] = useState<QuickStartMode>('template');
@@ -11,15 +12,12 @@ export const LeftPanel: React.FC = () => {
 
     const handleTemplateSelect = (template: SkillTemplate) => {
         // Send template to VS Code to create new file
-        if (typeof window !== 'undefined' && (window as any).acquireVsCodeApi) {
-            const vscode = (window as any).acquireVsCodeApi();
-            vscode.postMessage({
-                command: 'createNewSkill',
-                content: template.content,
-                templateName: template.name,
-                mode: 'template'
-            });
-        }
+        vsCodeApi.postMessage({
+            command: 'createNewSkill',
+            content: template.content,
+            templateName: template.name,
+            mode: 'template'
+        });
     };
 
     const handleQuickStartAction = (mode: QuickStartMode) => {
@@ -103,14 +101,11 @@ export const LeftPanel: React.FC = () => {
 - [Official docs or reference]`;
 
             // Send message to VS Code to create new file with template
-            if (typeof window !== 'undefined' && (window as any).acquireVsCodeApi) {
-                const vscode = (window as any).acquireVsCodeApi();
-                vscode.postMessage({
-                    command: 'createNewSkill',
-                    content: templateContent,
-                    mode: 'scratch'
-                });
-            }
+            vsCodeApi.postMessage({
+                command: 'createNewSkill',
+                content: templateContent,
+                mode: 'scratch'
+            });
         } else if (mode === 'import') {
             // Open import modal instead of old file picker
             setShowImportModal(true);
@@ -206,24 +201,18 @@ export const LeftPanel: React.FC = () => {
 
     function handleImportConfig(config: ImportConfig) {
         // Send import configuration to VS Code
-        if (typeof window !== 'undefined' && (window as any).acquireVsCodeApi) {
-            const vscode = (window as any).acquireVsCodeApi();
-            vscode.postMessage({
-                command: 'importSkills',
-                config: config
-            });
-        }
+        vsCodeApi.postMessage({
+            command: 'importSkills',
+            config: config
+        });
     }
 
     function handleSaveAction(location: 'user' | 'project') {
         // Send save command to VS Code
-        if (typeof window !== 'undefined' && (window as any).acquireVsCodeApi) {
-            const vscode = (window as any).acquireVsCodeApi();
-            vscode.postMessage({
-                command: 'saveActiveSkill',
-                location: location
-            });
-        }
+        vsCodeApi.postMessage({
+            command: 'saveActiveSkill',
+            location: location
+        });
     }
 };
 

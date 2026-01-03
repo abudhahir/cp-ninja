@@ -8,28 +8,9 @@ import { SkillComposerPanel } from './webview/SkillComposerPanel';
 
 let extensionBasePath: string; // Declare globally
 
-// Define the chat handler for our @cp-ninja participant
-const chatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRequest, context: vscode.ChatContext, stream: vscode.ChatResponseStream): Promise<vscode.ChatResult> => {
-    const skillsDir = path.join(extensionBasePath, 'skills'); // Use the stored path
-    const personalSkillsDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja', 'skills');
-
-    // Bootstrap: On the first turn, inject the using-cp-ninja skill
-    if (context.history.length === 0) {
-        const bootstrapSkillPath = resolveSkillPath('using-cp-ninja', skillsDir, personalSkillsDir);
-        if (bootstrapSkillPath) {
-            const bootstrapContent = fs.readFileSync(bootstrapSkillPath.skillFile, 'utf8');
-            stream.markdown(stripFrontmatter(bootstrapContent));
-        } else {
-            stream.markdown('Welcome to Copilot Ninja! The `using-cp-ninja` bootstrap skill could not be found.');
-        }
-        return {};
-    }
-
-    // Command handling - parse commands from the prompt text
-    const message = request.prompt.trim();
-    
-    if (message.startsWith('/use_skill')) {
-        const skillName = message.replace('/use_skill', '').trim();
+// Create a chat handler for a specific skill
+const createSkillChatHandler = (skillName: string, skillsDir: string, personalSkillsDir: string): vscode.ChatRequestHandler => {
+    return async (request: vscode.ChatRequest, context: vscode.ChatContext, stream: vscode.ChatResponseStream): Promise<vscode.ChatResult> => {
         const skill = resolveSkillPath(skillName, skillsDir, personalSkillsDir);
         if (skill) {
             const skillContent = fs.readFileSync(skill.skillFile, 'utf8');
@@ -38,26 +19,42 @@ const chatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatReques
             stream.markdown(`Sorry, I could not find the skill "${skillName}".`);
         }
         return {};
-    }
+    };
+};
 
-    if (message.startsWith('/find_skills')) {
-        const cpNinjaSkills = findSkillsInDir(skillsDir, 'cp-ninja');
-        const personalSkills = findSkillsInDir(personalSkillsDir, 'personal');
-        const allSkills = [...cpNinjaSkills, ...personalSkills];
+// Define the main chat handler for @cp-ninja participant
+const mainChatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRequest, context: vscode.ChatContext, stream: vscode.ChatResponseStream): Promise<vscode.ChatResult> => {
+    const skillsDir = path.join(extensionBasePath, 'skills');
+    const personalSkillsDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja', 'skills');
 
-        if (allSkills.length === 0) {
-            stream.markdown('No skills found.');
+    // Check if a specific skill command is being used
+    if (request.command) {
+        const skillName = request.command;
+        const skill = resolveSkillPath(skillName, skillsDir, personalSkillsDir);
+        if (skill) {
+            const skillContent = fs.readFileSync(skill.skillFile, 'utf8');
+            stream.markdown(`**Using skill: ${skillName}**\n\n` + stripFrontmatter(skillContent));
+            return {};
         } else {
-            const skillList = allSkills.map(s => `- **${s.name}** (${s.sourceType}): ${s.description}`).join('\n');
-            stream.markdown(`**Available Skills:**\n${skillList}`);
+            stream.markdown(`Sorry, I could not find the skill "${skillName}".`);
+            return {};
         }
-        return {};
     }
-    
-    // Default behavior if no command is matched - could be to pass through to the default agent
-    // For now, we'll just indicate that a command is needed.
-    stream.markdown("I am the @cp-ninja participant. Please use `/use_skill` or `/find_skills`.");
 
+    // Show available skills and usage instructions
+    const cpNinjaSkills = findSkillsInDir(skillsDir, 'cp-ninja');
+    const personalSkills = findSkillsInDir(personalSkillsDir, 'personal');
+    const allSkills = [...cpNinjaSkills, ...personalSkills];
+
+    if (allSkills.length === 0) {
+        stream.markdown('No skills found.');
+    } else {
+        stream.markdown('**Available CP-Ninja Skills:**\n\n' +
+            'Use `@cp-ninja /skill-name` to activate a specific skill:\n\n' +
+            allSkills.map(s => `- **@cp-ninja /${s.name}** - ${s.description}`).join('\n') +
+            '\n\nOr use the Skills Details view to browse and activate skills visually.'
+        );
+    }
     return {};
 };
 
@@ -66,14 +63,13 @@ export function activate(context: vscode.ExtensionContext) {
 
     extensionBasePath = context.extensionPath; // Store the extension path
 
-    // Register the chat participant
-    const participant = vscode.chat.createChatParticipant('cp-ninja', chatHandler);
+    const skillsDir = path.join(context.extensionPath, 'skills');
+    const personalSkillsDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja', 'skills');
     
-    // We can set properties on the participant, like an icon
-    participant.iconPath = new vscode.ThemeIcon('beaker');
-
-    // Add the participant to the context's subscriptions
-    context.subscriptions.push(participant);
+    // Register the main chat participant
+    const mainParticipant = vscode.chat.createChatParticipant('cp-ninja', mainChatHandler);
+    mainParticipant.iconPath = new vscode.ThemeIcon('beaker');
+    context.subscriptions.push(mainParticipant);
 
     // Create a status bar item
     const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
@@ -86,39 +82,40 @@ export function activate(context: vscode.ExtensionContext) {
     // Register command for the status bar item
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showCommands', async () => {
         const pick = await vscode.window.showQuickPick(
-            [{ label: 'Find Skills', description: 'List all available skills' }, { label: 'Use Skill...', description: 'Invoke a specific skill' }],
+            [{ label: 'Show Skills', description: 'List all available skills' }, { label: 'Use Skill...', description: 'Select a specific skill to use' }],
             { placeHolder: 'Select a Copilot Ninja command' }
         );
 
         if (pick) {
-            if (pick.label === 'Find Skills') {
-                // Open chat view and show instructions
+            if (pick.label === 'Show Skills') {
+                // Open chat view and show main participant
                 await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
-                vscode.window.showInformationMessage('In the chat view, type: @cp-ninja /find_skills');
+                vscode.window.showInformationMessage('In the chat view, type: @cp-ninja');
             } else if (pick.label === 'Use Skill...') {
-                const skillName = await vscode.window.showInputBox({
-                    prompt: 'Enter the name of the skill to use',
-                    placeHolder: 'e.g., brainstorming'
-                });
-                if (skillName) {
-                    // Open chat view and show instructions
+                const cpNinjaSkills = findSkillsInDir(skillsDir, 'cp-ninja');
+                const personalSkills = findSkillsInDir(personalSkillsDir, 'personal');
+                const allSkills = [...cpNinjaSkills, ...personalSkills];
+                const skillPick = await vscode.window.showQuickPick(
+                    allSkills.map(skill => ({ label: skill.name, description: skill.description })),
+                    { placeHolder: 'Select a skill to use' }
+                );
+                if (skillPick) {
+                    // Open chat view and show participant
                     await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
-                    vscode.window.showInformationMessage(`In the chat view, type: @cp-ninja /use_skill ${skillName}`);
+                    vscode.window.showInformationMessage(`In the chat view, type: @cp-ninja /${skillPick.label}`);
                 }
             }
         }
     }));
 
     // Skills Explorer View
-    const skillsDir = path.join(context.extensionPath, 'skills');
-    const personalSkillsDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja', 'skills');
     const skillsTreeDataProvider = new SkillTreeDataProvider(skillsDir, personalSkillsDir, extensionBasePath);
     vscode.window.createTreeView('cp-ninja.skillsView', { treeDataProvider: skillsTreeDataProvider });
 
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.useSkillFromView', async (skillName: string) => {
-        // Open chat view and show instructions
+        // Open chat view and show participant
         await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
-        vscode.window.showInformationMessage(`In the chat view, type: @cp-ninja /use_skill ${skillName}`);
+        vscode.window.showInformationMessage(`In the chat view, type: @cp-ninja /${skillName}`);
     }));
 
     // Proactive Skill Suggestions
@@ -145,17 +142,17 @@ export function activate(context: vscode.ExtensionContext) {
                 'Dismiss'
             ).then(selection => {
                 if (selection === 'Use Skill') {
-                    // Open chat view and show instructions
+                    // Open chat view and show participant
                     vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
-                    vscode.window.showInformationMessage(`In the chat view, type: @cp-ninja /use_skill ${suggestion.skillName}`);
+                    vscode.window.showInformationMessage(`In the chat view, type: @cp-ninja /${suggestion.skillName}`);
                 }
                 lastSuggestedSkill = suggestion.skillName; // Set last suggested skill to avoid immediate re-suggestion
             });
         }
     }));
 
-    // Register Skill Composer command
-    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.openSkillComposer', () => {
+    // Register Skills Details View command
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showDetails', () => {
         SkillComposerPanel.createOrShow(context);
     }));
 

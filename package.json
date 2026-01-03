@@ -2,7 +2,7 @@
   "name": "cp-ninja",
   "displayName": "Copilot Ninja Skills",
   "description": "Integrates Superpowers skills into GitHub Copilot for enhanced developer workflow.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/abudhahir/cp-ninja.git"
@@ -20,8 +20,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "cp-ninja.openSkillComposer",
-        "title": "Open Skill Composer",
+        "command": "cp-ninja.showDetails",
+        "title": "Show Details",
         "category": "Copilot Ninja"
       }
     ],
@@ -31,7 +31,69 @@
         "name": "cp-ninja",
         "fullName": "Copilot Ninja",
         "iconPath": "./resources/cp-ninja-icon.svg",
-        "description": "Copilot Ninja grants superpowers to your AI assistant."
+        "description": "Copilot Ninja grants superpowers to your AI assistant.",
+        "commands": [
+          {
+            "name": "brainstorming",
+            "description": "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior."
+          },
+          {
+            "name": "dispatching-parallel-agents",
+            "description": "Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies"
+          },
+          {
+            "name": "executing-plans",
+            "description": "Use when you have an implementation plan and you want to execute it step-by-step"
+          },
+          {
+            "name": "finishing-a-development-branch",
+            "description": "Use when feature work is complete and you need to clean up before merging"
+          },
+          {
+            "name": "receiving-code-review",
+            "description": "Use when you receive code review feedback and need to address it systematically"
+          },
+          {
+            "name": "requesting-code-review",
+            "description": "Use when your code is ready for review and you need to prepare a thorough review request"
+          },
+          {
+            "name": "subagent-driven-development",
+            "description": "Use when executing implementation plans with independent tasks in the current session"
+          },
+          {
+            "name": "systematic-debugging",
+            "description": "Use when debugging complex issues that require systematic investigation"
+          },
+          {
+            "name": "test-driven-development",
+            "description": "Use when implementing new features or fixing bugs using test-driven development"
+          },
+          {
+            "name": "using-cp-ninja",
+            "description": "Use when starting any conversation - establishes how to find and use skills"
+          },
+          {
+            "name": "using-git-worktrees",
+            "description": "Use when starting feature work that needs isolation from current workspace"
+          },
+          {
+            "name": "using-superpowers",
+            "description": "Use when you need guidance on using the Superpowers skill system"
+          },
+          {
+            "name": "verification-before-completion",
+            "description": "Use before claiming task completion to verify all requirements are met"
+          },
+          {
+            "name": "writing-plans",
+            "description": "Use when you have a spec or requirements for a multi-step task, before touching code"
+          },
+          {
+            "name": "writing-skills",
+            "description": "Use when creating new skills or improving existing ones"
+          }
+        ]
       }
     ],
     "viewsContainers": {

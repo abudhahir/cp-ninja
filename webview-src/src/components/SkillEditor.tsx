@@ -18,7 +18,7 @@ export const SkillEditor: React.FC<SkillEditorProps> = ({
   return (
     <div 
       className="skill-editor"
-      data-testid="monaco-editor"
+      data-testid="skill-editor"
       style={{
         height,
         width: '100%',

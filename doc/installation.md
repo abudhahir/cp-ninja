@@ -65,7 +65,7 @@ After either local or Marketplace installation, you can verify that `@cp-ninja` 
 
 1.  **Check the Status Bar:** Look for the `$(beaker) @cp-ninja` item in the bottom-left corner of the VS Code status bar.
 2.  **Check the Activity Bar:** Look for the new Copilot Ninja icon in the Activity Bar on the far left. Clicking it should open the "Skills Explorer" view.
-3.  **Check the Chat:** Open the Chat view and type `@`. You should see `@cp-ninja` appear in the list of available chat participants. Start a chat by typing `@cp-ninja /find_skills` to see a list of available skills.
+3.  **Check the Chat:** Open the Chat view and type `@cp-ninja:` to see autocomplete suggestions for all available skills. You can also type `@cp-ninja` to see the main participant with usage instructions.
 
 ---
 

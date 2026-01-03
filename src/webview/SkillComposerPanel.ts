@@ -85,6 +85,9 @@ export class SkillComposerPanel {
                         console.log('Template selected:', message.template.name);
                         vscode.window.showInformationMessage(`Template selected: ${message.template.name}`);
                         return;
+                    case 'useSkill':
+                        await this.handleUseSkill(message.skillName);
+                        return;
                     case 'createNewSkill':
                         await this.handleCreateNewSkill(message);
                         return;
@@ -109,6 +112,47 @@ export class SkillComposerPanel {
 
     public async showTargetPathCommand() {
         await this.handleShowTargetPath();
+    }
+
+    private async handleUseSkill(skillName: string) {
+        try {
+            // Focus the chat panel first
+            await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
+            
+            // Wait a moment for the chat to be ready
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Try different methods to insert text
+            const participantId = `@cp-ninja:${skillName}`;
+            
+            // Method 1: Try the standard insert command
+            try {
+                await vscode.commands.executeCommand('workbench.action.chat.insertIntoNewChatInput', participantId);
+                vscode.window.showInformationMessage(`Skill "${skillName}" ready in chat!`);
+                return;
+            } catch (insertError) {
+                console.log('Insert command failed, trying alternative methods');
+            }
+            
+            // Method 2: Try workbench.action.chat.newChat with input
+            try {
+                await vscode.commands.executeCommand('workbench.action.chat.newChat', { input: participantId });
+                vscode.window.showInformationMessage(`New chat started with skill "${skillName}"!`);
+                return;
+            } catch (newChatError) {
+                console.log('New chat command failed');
+            }
+            
+            // Method 3: Copy to clipboard as fallback
+            await vscode.env.clipboard.writeText(participantId);
+            vscode.window.showInformationMessage(`Skill participant "${participantId}" copied to clipboard! Paste it in the chat.`);
+            
+        } catch (error) {
+            console.error('Error using skill:', error);
+            // Final fallback to manual instruction
+            const participantId = `@cp-ninja:${skillName}`;
+            vscode.window.showInformationMessage(`In the chat view, type: ${participantId}`);
+        }
     }
 
     public dispose() {

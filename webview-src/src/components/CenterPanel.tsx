@@ -2,35 +2,29 @@ import React from 'react';
 import { TemplateGallery } from './TemplateGallery';
 import { SkillTemplate } from '../types/skill';
 
-declare const vscode: any;
+interface CenterPanelProps {
+    onSkillSelect: (skill: SkillTemplate) => void;
+}
 
-export const CenterPanel: React.FC = () => {
+export const CenterPanel: React.FC<CenterPanelProps> = ({ onSkillSelect }) => {
     const handleTemplateSelect = (template: SkillTemplate) => {
-        // Send message to VS Code to create new skill from template
-        if (typeof window !== 'undefined' && (window as any).acquireVsCodeApi) {
-            const vscode = (window as any).acquireVsCodeApi();
-            vscode.postMessage({
-                command: 'createNewSkill',
-                content: template.content,
-                templateName: template.name,
-                mode: 'template'
-            });
-        }
+        // Show skill preview instead of creating new file
+        onSkillSelect(template);
     };
 
     return (
         <div data-testid="center-panel" style={panelStyles}>
             <div style={contentStyles}>
                 <div style={heroStyles}>
-                    <h2 style={titleStyles}>🚀 CP-Ninja Skill Composer</h2>
-                    <p style={subtitleStyles}>Create and organize your development skills with native VS Code integration</p>
+                    <h2 style={titleStyles}>🚀 CP-Ninja Skills & Instructions</h2>
+                    <p style={subtitleStyles}>Browse and explore development skills, instructions, and agents</p>
                 </div>
 
                 {/* Template Gallery Section */}
                 <div style={templateGallerySection}>
-                    <h3 style={sectionHeaderStyles}>📚 Browse Skill Templates</h3>
+                    <h3 style={sectionHeaderStyles}>📚 Available Skills</h3>
                     <p style={sectionDescriptionStyles}>
-                        Click any template card to create a new skill. Templates open in VS Code's native editor with full Copilot support.
+                        Click any skill card to view its detailed content and instructions.
                     </p>
                     <TemplateGallery onTemplateSelect={handleTemplateSelect} />
                 </div>
@@ -40,9 +34,8 @@ export const CenterPanel: React.FC = () => {
 };
 
 const panelStyles: React.CSSProperties = {
-    width: '55%',
+    width: '100%',
     height: '100%',
-    borderRight: '1px solid var(--vscode-panel-border)',
     backgroundColor: 'var(--vscode-editor-background)',
     display: 'flex',
     flexDirection: 'column',

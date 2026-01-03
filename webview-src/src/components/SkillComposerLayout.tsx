@@ -1,14 +1,26 @@
-import React from 'react';
-import { LeftPanel } from './LeftPanel';
+import React, { useState } from 'react';
 import { CenterPanel } from './CenterPanel';
-import { RightPanel } from './RightPanel';
+import { SkillPreview } from './SkillPreview';
+import { SkillTemplate } from '../types/skill';
 
 export const SkillComposerLayout: React.FC = () => {
+    const [selectedSkill, setSelectedSkill] = useState<SkillTemplate | null>(null);
+
+    const handleSkillSelect = (skill: SkillTemplate) => {
+        setSelectedSkill(skill);
+    };
+
+    const handleBack = () => {
+        setSelectedSkill(null);
+    };
+
     return (
         <div className="skill-composer-layout" style={containerStyles}>
-            <LeftPanel />
-            <CenterPanel />
-            <RightPanel />
+            {selectedSkill ? (
+                <SkillPreview skill={selectedSkill} onBack={handleBack} />
+            ) : (
+                <CenterPanel onSkillSelect={handleSkillSelect} />
+            )}
         </div>
     );
 };

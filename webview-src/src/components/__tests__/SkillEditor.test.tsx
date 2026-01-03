@@ -6,14 +6,14 @@ describe('SkillEditor', () => {
     test('should render editor container', () => {
         render(<SkillEditor value="" onChange={() => {}} />);
         
-        expect(screen.getByTestId('monaco-editor')).toBeInTheDocument();
+        expect(screen.getByTestId('skill-editor')).toBeInTheDocument();
     });
     
     test('should call onChange when content changes', async () => {
         const mockOnChange = jest.fn();
         render(<SkillEditor value="initial" onChange={mockOnChange} />);
         
-        // Monaco integration will be tested in integration tests
+        // Simple textarea integration
         expect(mockOnChange).toHaveBeenCalledTimes(0);
     });
 });
