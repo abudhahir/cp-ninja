@@ -37,26 +37,27 @@ This project is implemented as a **Chat Participant** extension for VS Code, pro
 *   **Dynamic Registration:** Skills are automatically discovered and registered as participants
 *   **Instant Activation:** Select any skill participant to immediately load its content
 
-## Skills Details View
+## Skills Display
 
-CP-Ninja includes a **Skills Details View** that provides a native VS Code experience for browsing and exploring skills with integrated chat activation.
+CP-Ninja provides two intuitive ways to access and view skills:
 
-### 🚀 Getting Started
+### 1. Quick Access via Action Bar
+- Click the skills icon in the Skills Explorer title bar
+- Search skills by name or browse by category
+- Categories include: Development Process, Planning & Execution, Code Review & Collaboration
+- Select any skill to open it in VS Code's native markdown editor
 
-1. Open the command palette (`Ctrl+Shift+P`)
-2. Run `CP-Ninja: Show Details`
-3. Browse available skills:
-   - **Full-width Gallery**: View all cp-ninja skills in organized categories
-   - **Click to Preview**: View detailed markdown content for any skill
-   - **Use Skill Button**: Instantly activate skills in GitHub Copilot Chat
+### 2. Browse via Sidebar
+- Use the Skills Explorer in the activity bar
+- Browse skills organized by folder structure  
+- Click any skill to open it directly in the native editor
 
-### ✨ Key Features
-
-- **Visual Skill Browser**: Browse skills with tags, descriptions, and difficulty levels
-- **Markdown Preview**: View full skill content with proper formatting
-- **One-Click Activation**: "Use Skill" button opens chat with skill ready to use
-- **Category Filtering**: Filter skills by type (development, testing, planning, etc.)
-- **Seamless Integration**: Direct connection to GitHub Copilot Chat system
+### Benefits of Native Editor Integration
+- Syntax highlighting for markdown
+- Familiar VS Code editing experience
+- Follows your custom theme preferences
+- Fast loading with no webview overhead
+- Full text search and navigation
 
 ### 🏗️ Skill Template Structure
 
@@ -86,7 +87,7 @@ CP-Ninja includes a **Skills Details View** that provides a native VS Code exper
 - **GitHub Copilot Integration**: AI-powered suggestions while writing skills
 - **Syntax Highlighting**: Proper markdown formatting in native editor  
 - **Familiar Experience**: Standard VS Code shortcuts and features
-- **Performance**: Native editor is faster than custom webview alternatives
+- **Performance**: Fast loading with native VS Code components
 - **Team Collaboration**: Easy sharing and version control of skills
 
 ## Future Development

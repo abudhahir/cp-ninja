@@ -63,9 +63,10 @@ VS Code will prompt you to reload the window if necessary to activate the extens
 
 After either local or Marketplace installation, you can verify that `@cp-ninja` is working correctly:
 
-1.  **Check the Status Bar:** Look for the `$(beaker) @cp-ninja` item in the bottom-left corner of the VS Code status bar.
-2.  **Check the Activity Bar:** Look for the new Copilot Ninja icon in the Activity Bar on the far left. Clicking it should open the "Skills Explorer" view.
+1.  **Check the Activity Bar:** Look for the Skills Explorer icon in the Activity Bar on the far left. Clicking it should open the "Skills Explorer" view.
+2.  **Check Skills Access:** Click the skills icon in the Skills Explorer title bar to access the Quick Pick interface for browsing skills.
 3.  **Check the Chat:** Open the Chat view and type `@cp-ninja:` to see autocomplete suggestions for all available skills. You can also type `@cp-ninja` to see the main participant with usage instructions.
+4.  **Verify Skills Open:** Click any skill in the Skills Explorer to verify it opens in VS Code's native markdown editor.
 
 ---
 
