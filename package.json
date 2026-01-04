@@ -20,11 +20,6 @@
   "contributes": {
     "commands": [
       {
-        "command": "cp-ninja.showDetails",
-        "title": "Show Details",
-        "category": "Copilot Ninja"
-      },
-      {
         "command": "cp-ninja.showWelcome",
         "title": "Show Welcome Screen",
         "category": "Copilot Ninja"
@@ -260,12 +255,6 @@
           "default": {},
           "description": "Custom keyboard shortcuts for skills (shortcut -> skill name)."
         },
-        "cpNinja.themePreference": {
-          "type": "string",
-          "enum": ["auto", "light", "dark"],
-          "default": "auto",
-          "description": "Theme preference for webview components."
-        },
         "cpNinja.workspaceProfiles": {
           "type": "object",
           "default": {},
@@ -297,9 +286,7 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTests.js",
-    "build:webview": "cd webview-src && npm install && npm run build",
-    "watch:webview": "cd webview-src && npm run watch"
+    "test": "node ./out/test/runTests.js"
   },
   "devDependencies": {
     "@types/vscode": "^1.75.0",

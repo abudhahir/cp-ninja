@@ -5,7 +5,6 @@ import { promises as fsPromises } from 'fs';
 import { findSkillsInDir, resolveSkillPath, stripFrontmatter } from './lib/skills-core';
 import { EnhancedSkillTreeDataProvider } from './EnhancedSkillTreeDataProvider';
 import { SkillQuickPick } from './lib/SkillQuickPick';
-import { SkillComposerPanel } from './webview/SkillComposerPanel';
 import { ResourceManager } from './ResourceManager';
 import { BootstrapManager } from './BootstrapManager';
 import { ContextDetector } from './ContextDetector';
@@ -346,9 +345,7 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     // Register Skills Details View command
-    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showDetails', () => {
-        SkillComposerPanel.createOrShow(context);
-    }));
+    // REMOVED: webview-based showDetails command
 
     // Register onboarding commands
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showWelcome', () => {
@@ -360,17 +357,6 @@ export function activate(context: vscode.ExtensionContext) {
     }));
 
     // Check for first-run onboarding
-    setTimeout(() => {
-        onboardingManager?.checkAndShowWelcome();
-    }, 2000); // Delay to ensure extension is fully loaded
-
-    // Register command for status bar target path display
-    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showTargetPath', async () => {
-        // This command is called by the status bar item
-        if (SkillComposerPanel.currentPanel) {
-            await SkillComposerPanel.currentPanel.showTargetPathCommand();
-        }
-    }));
 
     // Register SkillQuickPick command
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showSkillsQuickPick', async () => {
