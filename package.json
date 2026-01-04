@@ -230,7 +230,12 @@
         },
         "cpNinja.suggestionFrequency": {
           "type": "string",
-          "enum": ["never", "minimal", "normal", "aggressive"],
+          "enum": [
+            "never",
+            "minimal",
+            "normal",
+            "aggressive"
+          ],
           "default": "normal",
           "description": "Frequency of skill suggestions."
         },
@@ -274,7 +279,7 @@
           "type": "number",
           "default": 0.6,
           "minimum": 0.1,
-          "maximum": 1.0,
+          "maximum": 1,
           "description": "Minimum confidence threshold for automatic profile detection (0.1-1.0)."
         }
       }
@@ -289,16 +294,14 @@
     "test": "node ./out/test/runTests.js"
   },
   "devDependencies": {
-    "@types/vscode": "^1.75.0",
-    "@types/glob": "^8.1.0",
-    "@types/mocha": "^10.0.1",
+    "@types/jest": "^29.5.14",
     "@types/node": "16.x",
+    "@types/vscode": "^1.75.0",
     "@typescript-eslint/eslint-plugin": "^5.59.1",
     "@typescript-eslint/parser": "^5.59.1",
     "eslint": "^8.39.0",
-    "glob": "^8.1.0",
-    "mocha": "^10.2.0",
-    "typescript": "^5.0.4",
-    "@vscode/test-electron": "^2.3.0"
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.0.4"
   }
 }

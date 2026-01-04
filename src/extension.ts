@@ -5,9 +5,6 @@ import { promises as fsPromises } from 'fs';
 import { findSkillsInDir, resolveSkillPath, stripFrontmatter } from './lib/skills-core';
 import { EnhancedSkillTreeDataProvider } from './EnhancedSkillTreeDataProvider';
 import { SkillQuickPick } from './lib/SkillQuickPick';
-import { ResourceManager } from './ResourceManager';
-import { BootstrapManager } from './BootstrapManager';
-import { ContextDetector } from './ContextDetector';
 import { ProfileChatHandler } from './ProfileChatHandler';
 import { OnboardingManager } from './OnboardingManager';
 import { EnhancedSuggestionEngine } from './EnhancedSuggestionEngine';
@@ -185,23 +182,17 @@ export function activate(context: vscode.ExtensionContext) {
     const skillsDir = path.join(context.extensionPath, 'skills');
     const personalSkillsDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja', 'skills');
     
-    // Initialize the resources system
-    try {
-        const resourceManager = new ResourceManager(context.extensionPath);
-        const contextDetector = new ContextDetector(context.extensionPath);
-        const bootstrapManager = new BootstrapManager(context.extensionPath);
-        
-        // Initialize ProfileChatHandler
-        const agentsDir = path.join(context.extensionPath, 'templates', 'agents');
-        console.log(`Initializing ProfileChatHandler with agents directory: ${agentsDir}`);
-        
-        // Check if agents directory exists
-        if (fs.existsSync(agentsDir)) {
-            profileChatHandler = new ProfileChatHandler(context.extensionPath, path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja'), context.extensionPath, agentsDir);
-            console.log('ProfileChatHandler initialized successfully');
-        } else {
-            console.warn(`Agents directory not found: ${agentsDir}`);
-        }
+    // Initialize ProfileChatHandler
+    const agentsDir = path.join(context.extensionPath, 'templates', 'agents');
+    console.log(`Initializing ProfileChatHandler with agents directory: ${agentsDir}`);
+    
+    // Check if agents directory exists
+    if (fs.existsSync(agentsDir)) {
+        profileChatHandler = new ProfileChatHandler(context.extensionPath, path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja'), context.extensionPath, agentsDir);
+        console.log('ProfileChatHandler initialized successfully');
+    } else {
+        console.warn(`Agents directory not found: ${agentsDir}`);
+    }
         
         // Initialize new managers
         onboardingManager = new OnboardingManager(context);
@@ -211,11 +202,7 @@ export function activate(context: vscode.ExtensionContext) {
         // Initialize auto-profile system (Phase 1 & 2) - commented out to fix lint
         // autoProfileManager = new AutoProfileManager(context, profileChatHandler);
         
-        console.log('Resources system initialized successfully');
-    } catch (error) {
-        console.error('Failed to initialize resources system:', error);
-        // Continue without resources system if initialization fails
-    }
+        console.log('Extension initialization completed successfully');
     
     // Register the main chat participant
     const mainParticipant = vscode.chat.createChatParticipant('cp-ninja', mainChatHandler);
