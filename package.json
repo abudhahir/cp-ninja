@@ -23,6 +23,65 @@
         "command": "cp-ninja.showDetails",
         "title": "Show Details",
         "category": "Copilot Ninja"
+      },
+      {
+        "command": "cp-ninja.showWelcome",
+        "title": "Show Welcome Screen",
+        "category": "Copilot Ninja"
+      },
+      {
+        "command": "cp-ninja.resetOnboarding",
+        "title": "Reset Onboarding",
+        "category": "Copilot Ninja"
+      },
+      {
+        "command": "cp-ninja.searchSkills",
+        "title": "Search Skills",
+        "category": "Copilot Ninja",
+        "icon": "$(search)"
+      },
+      {
+        "command": "cp-ninja.toggleFavorites",
+        "title": "Toggle Favorites View",
+        "category": "Copilot Ninja",
+        "icon": "$(star)"
+      },
+      {
+        "command": "cp-ninja.addToFavorites",
+        "title": "Add to Favorites",
+        "category": "Copilot Ninja"
+      },
+      {
+        "command": "cp-ninja.removeFromFavorites",
+        "title": "Remove from Favorites",
+        "category": "Copilot Ninja"
+      },
+      {
+        "command": "cp-ninja.autoDetectProfile",
+        "title": "Auto-Detect Project Profile",
+        "category": "Copilot Ninja"
+      },
+      {
+        "command": "cp-ninja.showActiveProfile",
+        "title": "Show Active Profile",
+        "category": "Copilot Ninja"
+      },
+      {
+        "command": "cp-ninja.configureProfile",
+        "title": "Configure Profile",
+        "category": "Copilot Ninja"
+      },
+      {
+        "command": "cp-ninja.showSkillsQuickPick",
+        "title": "Show Skills Quick Pick",
+        "category": "Copilot Ninja",
+        "icon": "$(list-selection)"
+      },
+      {
+        "command": "cp-ninja.showSkillsQuickPick",
+        "title": "Show Skills Quick Pick",
+        "category": "Copilot Ninja",
+        "icon": "$(list-selection)"
       }
     ],
     "chatParticipants": [
@@ -92,6 +151,18 @@
           {
             "name": "writing-skills",
             "description": "Use when creating new skills or improving existing ones"
+          },
+          {
+            "name": "technical-analysis",
+            "description": "Use when you need comprehensive technical analysis workflow with business analyst, software architect, and technical analyzer agents"
+          },
+          {
+            "name": "switch-profile",
+            "description": "Switch between different development profiles (frontend, backend, fullstack, etc.)"
+          },
+          {
+            "name": "list-profiles",
+            "description": "List all available development profiles and their associated skills and agents"
           }
         ]
       }
@@ -113,6 +184,37 @@
         }
       ]
     },
+    "menus": {
+      "view/title": [
+        {
+          "command": "cp-ninja.showSkillsQuickPick",
+          "when": "view == cp-ninja.skillsView",
+          "group": "navigation@0"
+        },
+        {
+          "command": "cp-ninja.searchSkills",
+          "when": "view == cp-ninja.skillsView",
+          "group": "navigation"
+        },
+        {
+          "command": "cp-ninja.toggleFavorites",
+          "when": "view == cp-ninja.skillsView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "cp-ninja.addToFavorites",
+          "when": "view == cp-ninja.skillsView && viewItem == skill",
+          "group": "favorites"
+        },
+        {
+          "command": "cp-ninja.removeFromFavorites",
+          "when": "view == cp-ninja.skillsView && viewItem == skill",
+          "group": "favorites"
+        }
+      ]
+    },
     "configuration": {
       "title": "Copilot Ninja",
       "properties": {
@@ -125,6 +227,61 @@
           "type": "number",
           "default": 300,
           "description": "Cooldown period (in seconds) between proactive suggestions."
+        },
+        "cpNinja.suggestionFrequency": {
+          "type": "string",
+          "enum": ["never", "minimal", "normal", "aggressive"],
+          "default": "normal",
+          "description": "Frequency of skill suggestions."
+        },
+        "cpNinja.blacklistedSkills": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Skills to never suggest or show."
+        },
+        "cpNinja.favoriteSkills": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Favorite skills that appear first in suggestions."
+        },
+        "cpNinja.customShortcuts": {
+          "type": "object",
+          "default": {},
+          "description": "Custom keyboard shortcuts for skills (shortcut -> skill name)."
+        },
+        "cpNinja.themePreference": {
+          "type": "string",
+          "enum": ["auto", "light", "dark"],
+          "default": "auto",
+          "description": "Theme preference for webview components."
+        },
+        "cpNinja.workspaceProfiles": {
+          "type": "object",
+          "default": {},
+          "description": "Custom workspace profiles for different project types."
+        },
+        "cpNinja.enableAutoProfileDetection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically detect and configure project profiles based on workspace analysis."
+        },
+        "cpNinja.activeProfile": {
+          "type": "object",
+          "default": null,
+          "description": "Currently active project profile configuration."
+        },
+        "cpNinja.profileDetectionConfidenceThreshold": {
+          "type": "number",
+          "default": 0.6,
+          "minimum": 0.1,
+          "maximum": 1.0,
+          "description": "Minimum confidence threshold for automatic profile detection (0.1-1.0)."
         }
       }
     }
