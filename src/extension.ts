@@ -1,17 +1,68 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import { promises as fsPromises } from 'fs';
 import { findSkillsInDir, resolveSkillPath, stripFrontmatter } from './lib/skills-core';
-import { SkillTreeDataProvider } from './SkillsTreeDataProvider'; // Import the new data provider
-import { SuggestionEngine } from './SuggestionEngine'; // Import the SuggestionEngine
+import { EnhancedSkillTreeDataProvider } from './EnhancedSkillTreeDataProvider';
+import { SkillQuickPick } from './lib/SkillQuickPick';
 import { SkillComposerPanel } from './webview/SkillComposerPanel';
 import { ResourceManager } from './ResourceManager';
 import { BootstrapManager } from './BootstrapManager';
 import { ContextDetector } from './ContextDetector';
 import { ProfileChatHandler } from './ProfileChatHandler';
+import { OnboardingManager } from './OnboardingManager';
+import { EnhancedSuggestionEngine } from './EnhancedSuggestionEngine';
+import { ConfigurationManager } from './ConfigurationManager';
+// import { AutoProfileManager } from './AutoProfileManager';
 
 let extensionBasePath: string; // Declare globally
 let profileChatHandler: ProfileChatHandler; // Profile chat handler instance
+let onboardingManager: OnboardingManager;
+let enhancedSuggestionEngine: EnhancedSuggestionEngine;
+let configurationManager: ConfigurationManager;
+// let autoProfileManager: AutoProfileManager;
+
+// Utility function to copy agents directory to .github/prompts
+async function copyAgentsToGitHubPrompts(extensionPath: string): Promise<void> {
+    const sourceDir = path.join(extensionPath, 'templates', 'agents');
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    
+    if (!workspaceFolder) {
+        console.log('No workspace folder found, skipping agents directory copy');
+        return;
+    }
+    
+    const targetDir = path.join(workspaceFolder, '.github', 'prompts');
+    
+    try {
+        // Check if source directory exists
+        if (!fs.existsSync(sourceDir)) {
+            console.log(`Source agents directory not found: ${sourceDir}`);
+            return;
+        }
+        
+        // Create target directory if it doesn't exist
+        await fsPromises.mkdir(targetDir, { recursive: true });
+        
+        // Copy all files from source to target
+        const files = await fsPromises.readdir(sourceDir);
+        
+        for (const file of files) {
+            const sourceFile = path.join(sourceDir, file);
+            const targetFile = path.join(targetDir, file);
+            
+            const stat = await fsPromises.stat(sourceFile);
+            if (stat.isFile()) {
+                await fsPromises.copyFile(sourceFile, targetFile);
+                console.log(`Copied ${file} to .github/prompts/`);
+            }
+        }
+        
+        console.log(`Successfully copied agents directory to ${targetDir}`);
+    } catch (error) {
+        console.error('Failed to copy agents directory to .github/prompts:', error);
+    }
+}
 
 // Define the main chat handler for @cp-ninja participant  
 const mainChatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRequest, context: vscode.ChatContext, stream: vscode.ChatResponseStream): Promise<vscode.ChatResult> => {
@@ -28,8 +79,57 @@ const mainChatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRe
         }
     }
 
-    // Handle slash commands for specific skills
+    // Handle slash commands
     if (request.command) {
+        console.log(`Received command: ${request.command}`);
+        
+        // Handle profile commands first (via ProfileChatHandler)
+        if (['switch-profile', 'list-profiles', 'technical-analysis'].includes(request.command)) {
+            console.log(`Processing profile command: ${request.command}`);
+            
+            if (profileChatHandler) {
+                try {
+                    await profileChatHandler.handleProfileCommand(request, stream);
+                    return {};
+                } catch (error) {
+                    console.error('Profile chat handler error:', error);
+                    stream.markdown(`⚠️ Error processing profile command: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                    return {};
+                }
+            } else {
+                console.error('ProfileChatHandler not initialized');
+                // Provide fallback for technical-analysis
+                if (request.command === 'technical-analysis') {
+                    stream.markdown(`🔍 **Technical Analysis Workflow**\n\n` +
+                        `**Requirement:** ${request.prompt || 'No specific requirement provided'}\n\n` +
+                        `**Analysis Process:**\n` +
+                        `1. **Business Analysis** - Understanding business requirements and constraints\n` +
+                        `2. **Architecture Design** - System design and component architecture\n` +
+                        `3. **Technical Review** - Code quality, security, and performance analysis\n\n` +
+                        `**Security Implications to Consider:**\n` +
+                        `- Authentication and authorization mechanisms\n` +
+                        `- Data encryption in transit and at rest\n` +
+                        `- Input validation and sanitization\n` +
+                        `- Access control and privilege management\n` +
+                        `- Vulnerability assessment and threat modeling\n` +
+                        `- Compliance requirements (GDPR, HIPAA, etc.)\n\n` +
+                        `*Note: ProfileChatHandler not fully initialized. Using fallback mode.*`);
+                    return {};
+                } else if (request.command === 'list-profiles') {
+                    stream.markdown(`📋 **Available Profiles:**\n\n` +
+                        `- **Technical Analysis** - Comprehensive security and architecture review\n` +
+                        `- **Software Architect** - System design and architectural decisions\n` +
+                        `- **Security Analyst** - Security-focused analysis and recommendations\n\n` +
+                        `*Note: ProfileChatHandler not fully initialized. Basic profile list provided.*`);
+                    return {};
+                } else {
+                    stream.markdown(`⚠️ ProfileChatHandler not initialized. Cannot process profile commands.`);
+                    return {};
+                }
+            }
+        }
+
+        // Handle regular skill commands
         const skillName = request.command;
         const skill = resolveSkillPath(skillName, skillsDir, personalSkillsDir);
         if (skill) {
@@ -42,12 +142,12 @@ const mainChatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRe
         }
     }
 
-    // Handle profile queries via the ProfileChatHandler
+    // Handle profile queries via the ProfileChatHandler (fallback for non-command requests)
     if (profileChatHandler) {
         try {
-            // Check if this is a profile command and handle it
-            if (request.command && ['switch-profile', 'list-profiles', 'technical-analysis'].includes(request.command)) {
-                await profileChatHandler.handleProfileCommand(request, stream);
+            // This is for any remaining profile-related queries that aren't commands
+            if (request.prompt && (request.prompt.includes('profile') || request.prompt.includes('technical-analysis'))) {
+                // Handle as a general query, not a specific command
                 return {};
             }
         } catch (error) {
@@ -77,6 +177,11 @@ export function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, your extension "cp-ninja" is now active!');
 
     extensionBasePath = context.extensionPath; // Store the extension path
+    
+    // Copy agents directory to .github/prompts on startup
+    copyAgentsToGitHubPrompts(context.extensionPath).catch(error => {
+        console.error('Error during agents directory copy:', error);
+    });
 
     const skillsDir = path.join(context.extensionPath, 'skills');
     const personalSkillsDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja', 'skills');
@@ -89,7 +194,23 @@ export function activate(context: vscode.ExtensionContext) {
         
         // Initialize ProfileChatHandler
         const agentsDir = path.join(context.extensionPath, 'templates', 'agents');
-        profileChatHandler = new ProfileChatHandler(context.extensionPath, path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja'), context.extensionPath, agentsDir);
+        console.log(`Initializing ProfileChatHandler with agents directory: ${agentsDir}`);
+        
+        // Check if agents directory exists
+        if (fs.existsSync(agentsDir)) {
+            profileChatHandler = new ProfileChatHandler(context.extensionPath, path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja'), context.extensionPath, agentsDir);
+            console.log('ProfileChatHandler initialized successfully');
+        } else {
+            console.warn(`Agents directory not found: ${agentsDir}`);
+        }
+        
+        // Initialize new managers
+        onboardingManager = new OnboardingManager(context);
+        configurationManager = new ConfigurationManager(context);
+        enhancedSuggestionEngine = new EnhancedSuggestionEngine(skillsDir, personalSkillsDir, context);
+        
+        // Initialize auto-profile system (Phase 1 & 2) - commented out to fix lint
+        // autoProfileManager = new AutoProfileManager(context, profileChatHandler);
         
         console.log('Resources system initialized successfully');
     } catch (error) {
@@ -139,18 +260,65 @@ export function activate(context: vscode.ExtensionContext) {
         }
     }));
 
-    // Skills Explorer View
-    const skillsTreeDataProvider = new SkillTreeDataProvider(skillsDir, personalSkillsDir, extensionBasePath);
-    vscode.window.createTreeView('cp-ninja.skillsView', { treeDataProvider: skillsTreeDataProvider });
+    // Enhanced Skills Explorer View with search and filtering
+    const enhancedSkillsTreeDataProvider = new EnhancedSkillTreeDataProvider(skillsDir, personalSkillsDir, extensionBasePath, configurationManager);
+    vscode.window.createTreeView('cp-ninja.skillsView', { 
+        treeDataProvider: enhancedSkillsTreeDataProvider,
+        showCollapseAll: true
+    });
 
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.useSkillFromView', async (skillName: string) => {
+        // Track skill usage
+        if (enhancedSuggestionEngine) {
+            enhancedSuggestionEngine.trackSkillUsage(skillName);
+        }
+        
         // Open chat view and show participant
         await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
         vscode.window.showInformationMessage(`In the chat view, type: @cp-ninja /${skillName}`);
     }));
 
-    // Proactive Skill Suggestions
-    const suggestionEngine = new SuggestionEngine(skillsDir, personalSkillsDir, extensionBasePath);
+    // Register command for opening skills directly in editor from tree view
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.openSkillInEditor', async (skillItem: any) => {
+        if (enhancedSkillsTreeDataProvider && skillItem) {
+            await enhancedSkillsTreeDataProvider.openSkillInEditor(skillItem);
+        }
+    }));
+
+    // Add search skills command
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.searchSkills', async () => {
+        const searchTerm = await vscode.window.showInputBox({
+            prompt: 'Search skills by name or description',
+            placeHolder: 'Enter search term...'
+        });
+        
+        if (searchTerm !== undefined) {
+            enhancedSkillsTreeDataProvider.setSearchFilter(searchTerm);
+        }
+    }));
+
+    // Add toggle favorites command
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.toggleFavorites', () => {
+        enhancedSkillsTreeDataProvider.toggleFavoritesView();
+    }));
+
+    // Add skill to favorites command
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.addToFavorites', async (skillItem: any) => {
+        const skillName = skillItem.label.replace('⭐ ', ''); // Remove star if present
+        await configurationManager.addToFavorites(skillName);
+        enhancedSkillsTreeDataProvider.refresh();
+        vscode.window.showInformationMessage(`Added "${skillName}" to favorites`);
+    }));
+
+    // Remove skill from favorites command
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.removeFromFavorites', async (skillItem: any) => {
+        const skillName = skillItem.label.replace('⭐ ', ''); // Remove star if present
+        await configurationManager.removeFromFavorites(skillName);
+        enhancedSkillsTreeDataProvider.refresh();
+        vscode.window.showInformationMessage(`Removed "${skillName}" from favorites`);
+    }));
+
+    // Proactive Skill Suggestions - using enhanced suggestion engine
     let lastSuggestedSkill: string | null = null;
 
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(async editor => {
@@ -165,20 +333,15 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        const suggestion = await suggestionEngine.getSuggestion(editor.document);
-        if (suggestion && suggestion.skillName !== lastSuggestedSkill) {
-            vscode.window.showInformationMessage(
-                suggestion.description,
-                'Use Skill',
-                'Dismiss'
-            ).then(selection => {
-                if (selection === 'Use Skill') {
-                    // Open chat view and show participant
-                    vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
-                    vscode.window.showInformationMessage(`In the chat view, type: @cp-ninja /${suggestion.skillName}`);
+        if (enhancedSuggestionEngine && configurationManager) {
+            const contextSkills = enhancedSuggestionEngine.getContextAwareSkills(editor.document);
+            if (contextSkills.length > 0) {
+                const topSkill = contextSkills[0];
+                if (topSkill.name !== lastSuggestedSkill && configurationManager.isSkillEnabled(topSkill.name)) {
+                    await onboardingManager.showSkillSuggestion(topSkill.name, `Contextually relevant for ${path.extname(editor.document.fileName)} files`);
+                    lastSuggestedSkill = topSkill.name;
                 }
-                lastSuggestedSkill = suggestion.skillName; // Set last suggested skill to avoid immediate re-suggestion
-            });
+            }
         }
     }));
 
@@ -187,12 +350,32 @@ export function activate(context: vscode.ExtensionContext) {
         SkillComposerPanel.createOrShow(context);
     }));
 
+    // Register onboarding commands
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showWelcome', () => {
+        onboardingManager?.showWelcomeScreen();
+    }));
+    
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.resetOnboarding', () => {
+        onboardingManager?.resetOnboarding();
+    }));
+
+    // Check for first-run onboarding
+    setTimeout(() => {
+        onboardingManager?.checkAndShowWelcome();
+    }, 2000); // Delay to ensure extension is fully loaded
+
     // Register command for status bar target path display
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showTargetPath', async () => {
         // This command is called by the status bar item
         if (SkillComposerPanel.currentPanel) {
             await SkillComposerPanel.currentPanel.showTargetPathCommand();
         }
+    }));
+
+    // Register SkillQuickPick command
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showSkillsQuickPick', async () => {
+        const skillQuickPick = new SkillQuickPick(skillsDir, personalSkillsDir);
+        await skillQuickPick.showSkillPicker();
     }));
 }
 

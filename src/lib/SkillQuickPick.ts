@@ -140,6 +140,7 @@ export class SkillQuickPick {
     }
 
     async openSkillInEditor(skillPath: string): Promise<void> {
+        // skillPath is already a full directory path, just add SKILL.md
         const skillFile = path.join(skillPath, 'SKILL.md');
         const document = await vscode.workspace.openTextDocument(skillFile);
         await vscode.window.showTextDocument(document, { preview: false });

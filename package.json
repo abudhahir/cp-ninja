@@ -82,6 +82,11 @@
         "title": "Show Skills Quick Pick",
         "category": "Copilot Ninja",
         "icon": "$(list-selection)"
+      },
+      {
+        "command": "cp-ninja.openSkillInEditor",
+        "title": "Open Skill in Editor",
+        "category": "Copilot Ninja"
       }
     ],
     "chatParticipants": [

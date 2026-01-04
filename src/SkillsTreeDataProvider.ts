@@ -49,6 +49,33 @@ export class SkillTreeDataProvider implements vscode.TreeDataProvider<SkillItem>
     refresh(): void {
         this._onDidChangeTreeData.fire();
     }
+
+    /**
+     * Opens a skill directly in the native VS Code editor
+     * @param skillItem The SkillItem to open in editor
+     */
+    async openSkillInEditor(skillItem: SkillItem): Promise<void> {
+        // Check if this is actually a skill (not a category)
+        if (skillItem.contextValue !== 'skill') {
+            return;
+        }
+
+        // Build full path to the skill file
+        const skillPath = skillItem.skillFile;
+        if (!skillPath) {
+            vscode.window.showErrorMessage(`Could not find path for skill: ${skillItem.label}`);
+            return;
+        }
+
+        try {
+            // Open document with VS Code
+            const document = await vscode.workspace.openTextDocument(skillPath);
+            // Show document with preview set to false to keep documents open
+            await vscode.window.showTextDocument(document, { preview: false });
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to open skill file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    }
 }
 
 export class SkillItem extends vscode.TreeItem {
@@ -65,11 +92,17 @@ export class SkillItem extends vscode.TreeItem {
         this.iconPath = new vscode.ThemeIcon(sourceType === 'cp-ninja' ? 'verified' : 'account'); // Different icons for cp-ninja vs personal
         
         if (collapsibleState === vscode.TreeItemCollapsibleState.None) {
+            // Set contextValue to identify this as a skill item
+            this.contextValue = 'skill';
+            // Use new openSkillInEditor command instead of useSkillFromView
             this.command = {
-                command: 'cp-ninja.useSkillFromView',
-                title: 'Use Skill',
-                arguments: [label] // Pass the skill name as an argument
+                command: 'cp-ninja.openSkillInEditor',
+                title: 'Open Skill in Editor',
+                arguments: [this] // Pass the SkillItem as an argument
             };
+        } else {
+            // Set contextValue for categories
+            this.contextValue = 'category';
         }
     }
 }
