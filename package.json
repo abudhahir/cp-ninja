@@ -2,7 +2,7 @@
   "name": "cp-ninja",
   "displayName": "Copilot Ninja Skills",
   "description": "Enhance GitHub Copilot with structured skills, workflows, and best practices. Features 19 built-in skills, personal skill creation, smart suggestions, and native chat integration.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "copilot-ninja",
   "author": {
     "name": "Copilot Ninja Team",
@@ -10,7 +10,7 @@
   },
   "keywords": [
     "github-copilot",
-    "ai-assistant", 
+    "ai-assistant",
     "development-workflow",
     "best-practices",
     "skills",
@@ -317,7 +317,7 @@
     "clean": "rimraf out *.vsix",
     "validate": "npm run compile && npm run lint && npm run test",
     "version:patch": "npm version patch --no-git-tag-version",
-    "version:minor": "npm version minor --no-git-tag-version", 
+    "version:minor": "npm version minor --no-git-tag-version",
     "version:major": "npm version major --no-git-tag-version",
     "release:patch": "npm run version:patch && npm run package",
     "release:minor": "npm run version:minor && npm run package",
