@@ -1,5 +1,7 @@
+---
 name: creating-skill
 description: A meta-skill that guides an agent through an interactive process to define and create a new agent skill by asking the user a series of questions.
+---
 
 # Skill Creation Skill
 

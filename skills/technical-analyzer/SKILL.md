@@ -1,5 +1,7 @@
+---
 name: technical-analyzer
 description: Analyzes a given topic or use case within the existing codebase to produce a detailed technical implementation plan. It may leverage other skills for brainstorming, planning, and review to ensure a comprehensive analysis.
+---
 
 # Technical Analyzer Skill
 
