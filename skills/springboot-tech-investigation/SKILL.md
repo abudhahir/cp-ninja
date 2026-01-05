@@ -1,5 +1,7 @@
+---
 name: springboot-tech-investigation
 description: A skill that conducts comprehensive technical investigations of Spring Boot libraries, analyzing their capabilities, integration patterns, and implementation strategies by researching latest documentation and knowledge.
+---
 
 # Spring Boot Library Research Analyst
 
