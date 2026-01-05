@@ -60,4 +60,11 @@ export class RepoHistoryManager {
             lastAccessed: new Date(entry.lastAccessed)
         }));
     }
+
+    async clearHistory(): Promise<void> {
+        await this.context.globalState.update(
+            RepoHistoryManager.STORAGE_KEY,
+            []
+        );
+    }
 }

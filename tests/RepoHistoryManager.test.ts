@@ -28,4 +28,14 @@ describe('RepoHistoryManager', () => {
         expect(history[0].skillsCount).toBe(10);
         expect(history[0].promptsCount).toBe(5);
     });
+
+    test('clearHistory removes all entries', async () => {
+        await manager.addToHistory('owner/repo1', 5, 3, 1, 0);
+        await manager.addToHistory('owner/repo2', 2, 1, 0, 1);
+        
+        await manager.clearHistory();
+        
+        const history = await manager.getHistory();
+        expect(history).toHaveLength(0);
+    });
 });
