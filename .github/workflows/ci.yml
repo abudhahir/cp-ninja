@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: [18, 20]
+        node-version: [20, 22]
     
     steps:
     - name: Checkout code
@@ -59,7 +59,7 @@ jobs:
         fi
 
     - name: Upload test artifacts
-      if: matrix.os == 'ubuntu-latest' && matrix.node-version == '18'
+      if: matrix.os == 'ubuntu-latest' && matrix.node-version == '20'
       uses: actions/upload-artifact@v4
       with:
         name: test-vsix
@@ -76,7 +76,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
         cache: 'npm'
 
     - name: Install dependencies
