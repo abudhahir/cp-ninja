@@ -83,6 +83,51 @@ A powerful VS Code extension that enhances GitHub Copilot with structured "skill
 
 ## ⚙️ Configuration
 
+### Remote Resources
+
+Browse and download agents, prompts, skills, and instructions from Git repositories (GitHub/GitLab).
+
+#### Configuration Methods
+
+**Via Settings UI (Easiest):**
+1. `Cmd+Shift+P` / `Ctrl+Shift+P` → `Preferences: Open Settings (UI)`
+2. Search: `cpNinja`
+3. Scroll to **Remote Repositories** → Click **Add Item**
+
+**Via User Settings (Global):**
+- macOS: `~/Library/Application Support/Code/User/settings.json`
+- Linux: `~/.config/Code/User/settings.json`
+- Windows: `%APPDATA%\Code\User\settings.json`
+
+**Via Workspace Settings (Project-Specific):**
+- Location: `<workspace>/.vscode/settings.json`
+
+```json
+{
+  "cpNinja.remoteRepositories": [
+    {
+      "url": "https://github.com/yourorg/cp-ninja-resources",
+      "branch": "main",
+      "token": "${env:GITHUB_TOKEN}",
+      "paths": {
+        "agents": "agents",
+        "prompts": "prompts",
+        "skills": "skills",
+        "instructions": "instructions"
+      }
+    }
+  ]
+}
+```
+
+**Usage:**
+1. Run: `Copilot Ninja: Browse Remote Resources`
+2. Select repository and resources
+3. Choose destination (Project or Global)
+4. Resources are downloaded and ready to use!
+
+See [doc/remote-resources.md](doc/remote-resources.md) for detailed configuration guide.
+
 ### Personal Skills Directory
 
 Customize where your personal skills are stored:
@@ -133,6 +178,7 @@ Manage your skill preferences:
 | **Create Dynamic Skill** | Create new skill interactively | Via Command Palette |
 | **Show Skill Stats** | View loading statistics | Via Command Palette |
 | **Show Welcome Screen** | Display onboarding | Via Command Palette |
+| **Browse Remote Resources** | Download resources from Git repos | Via Command Palette |
 
 ## 🛠️ Creating Personal Skills
 
