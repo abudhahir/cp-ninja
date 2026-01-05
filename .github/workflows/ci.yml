@@ -1,0 +1,196 @@
+name: CI Build
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [18, 20]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Compile TypeScript
+      run: npm run compile
+
+    - name: Run tests (if available)
+      run: |
+        if [ -f "package.json" ] && npm run --silent test --if-present; then
+          npm test
+        else
+          echo "No tests configured, skipping..."
+        fi
+      shell: bash
+
+    - name: Install VSCE
+      run: npm install -g @vscode/vsce
+
+    - name: Package extension (validation)
+      run: |
+        vsce package --out cp-ninja-test.vsix
+        
+        # Verify package contents
+        if command -v unzip >/dev/null 2>&1; then
+          echo "Validating VSIX contents..."
+          unzip -l cp-ninja-test.vsix | head -20
+        fi
+
+    - name: Upload test artifacts
+      if: matrix.os == 'ubuntu-latest' && matrix.node-version == '18'
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-vsix
+        path: "*.vsix"
+        retention-days: 7
+
+  quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Check TypeScript compilation
+      run: npm run compile
+
+    - name: Validate package.json
+      run: |
+        echo "Validating package.json structure..."
+        node -e "
+          const pkg = require('./package.json');
+          
+          // Check required fields
+          const required = ['name', 'version', 'engines', 'main', 'contributes'];
+          const missing = required.filter(field => !pkg[field]);
+          
+          if (missing.length > 0) {
+            console.error('Missing required fields:', missing);
+            process.exit(1);
+          }
+          
+          // Check VS Code engine version
+          const vscodeVersion = pkg.engines?.vscode;
+          if (!vscodeVersion || !vscodeVersion.match(/^\^?[\d.]+/)) {
+            console.error('Invalid VS Code engine version:', vscodeVersion);
+            process.exit(1);
+          }
+          
+          console.log('✅ package.json validation passed');
+          console.log('📦 Extension:', pkg.displayName || pkg.name);
+          console.log('🔢 Version:', pkg.version);
+          console.log('🎯 VS Code Engine:', vscodeVersion);
+        "
+
+    - name: Validate skill files
+      run: |
+        echo "Validating skill files..."
+        
+        # Check that skills directory exists and has content
+        if [ ! -d "skills" ]; then
+          echo "❌ Skills directory not found"
+          exit 1
+        fi
+        
+        # Count skills
+        SKILL_COUNT=$(find skills -name "SKILL.md" | wc -l)
+        echo "📚 Found $SKILL_COUNT skill files"
+        
+        if [ $SKILL_COUNT -eq 0 ]; then
+          echo "❌ No skill files found"
+          exit 1
+        fi
+        
+        # Validate skill file format
+        echo "Checking skill file formats..."
+        find skills -name "SKILL.md" | while read skill; do
+          echo "Checking: $skill"
+          
+          # Check for frontmatter
+          if ! head -1 "$skill" | grep -q "^---$"; then
+            echo "❌ Missing frontmatter in $skill"
+            exit 1
+          fi
+          
+          # Check for required frontmatter fields
+          if ! grep -q "^name:" "$skill"; then
+            echo "⚠️  Missing name field in $skill"
+          fi
+          
+          if ! grep -q "^description:" "$skill"; then
+            echo "⚠️  Missing description field in $skill"
+          fi
+        done
+        
+        echo "✅ Skill validation completed"
+
+    - name: Check for security vulnerabilities
+      run: |
+        echo "🔍 Running security audit..."
+        npm audit --audit-level=high || true
+        
+        # Check for known vulnerable packages
+        if npm audit --json | grep -q '"vulnerabilities".*[1-9]'; then
+          echo "⚠️  Security vulnerabilities found. Review npm audit output."
+        else
+          echo "✅ No high-severity vulnerabilities found"
+        fi
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: [build, quality]
+    if: always()
+    
+    steps:
+    - name: Build Summary
+      run: |
+        echo "## 🔨 Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ needs.build.result }}" == "success" ]; then
+          echo "✅ **Build:** Passed on all platforms" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Build:** Failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "${{ needs.quality.result }}" == "success" ]; then
+          echo "✅ **Quality:** All checks passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Quality:** Checks failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Event:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

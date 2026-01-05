@@ -1,0 +1,170 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.2.3 or leave empty for auto-increment)'
+        required: false
+        type: string
+      release_type:
+        description: 'Auto-increment type (if version not specified)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+        - patch
+        - minor
+        - major
+      release_notes:
+        description: 'Custom release notes (optional)'
+        required: false
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  manual-release:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Validate build
+      run: |
+        npm run compile
+        echo "✅ Build validation passed"
+
+    - name: Configure Git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+    - name: Set version
+      id: version
+      run: |
+        if [ -n "${{ inputs.version }}" ]; then
+          # Use specified version
+          VERSION="${{ inputs.version }}"
+          npm version $VERSION --no-git-tag-version
+          echo "Using specified version: $VERSION"
+        else
+          # Auto-increment version
+          NEW_VERSION=$(npm version ${{ inputs.release_type }} --no-git-tag-version)
+          VERSION=${NEW_VERSION#v} # Remove 'v' prefix
+          echo "Auto-incremented version: $VERSION"
+        fi
+        
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Final version: $VERSION"
+
+    - name: Install VSCE
+      run: npm install -g @vscode/vsce
+
+    - name: Package extension
+      run: |
+        vsce package --out cp-ninja-${{ steps.version.outputs.version }}.vsix
+        
+        # Verify package
+        ls -la *.vsix
+        echo "✅ Package created successfully"
+
+    - name: Commit version bump
+      run: |
+        git add package.json
+        git commit -m "chore: release v${{ steps.version.outputs.version }} [skip ci]"
+        git tag v${{ steps.version.outputs.version }}
+
+    - name: Create release notes
+      id: notes
+      run: |
+        if [ -n "${{ inputs.release_notes }}" ]; then
+          echo "${{ inputs.release_notes }}" > release_notes.md
+        else
+          # Auto-generate release notes
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            echo "## What's Changed" > release_notes.md
+            echo "" >> release_notes.md
+            git log --pretty=format:"- %s (%h)" $PREV_TAG..HEAD --grep="^feat" --grep="^fix" --grep="^docs" >> release_notes.md
+          else
+            echo "## 🚀 Initial Release" > release_notes.md
+            echo "" >> release_notes.md
+            echo "First release of Copilot Ninja Skills extension!" >> release_notes.md
+          fi
+        fi
+        
+        # Add installation instructions
+        cat << 'EOF' >> release_notes.md
+        
+        ## 📦 Installation
+        
+        **From VS Code Marketplace:**
+        1. Open VS Code Extensions (Ctrl+Shift+X)
+        2. Search for "Copilot Ninja Skills"
+        3. Click Install
+        
+        **Manual Installation:**
+        1. Download the `.vsix` file below
+        2. Open VS Code → Ctrl+Shift+P → "Extensions: Install from VSIX"
+        3. Select the downloaded file
+        
+        ## ✨ Key Features
+        - 🎯 19+ built-in development skills
+        - 💬 GitHub Copilot Chat integration  
+        - 🌟 Skills Explorer with search & favorites
+        - ⚙️ Configurable personal skills directory
+        - 🔄 Dynamic loading with hot reload
+        EOF
+
+    - name: Push changes
+      run: |
+        git push origin main
+        git push origin v${{ steps.version.outputs.version }}
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.version.outputs.version }}
+        name: "v${{ steps.version.outputs.version }}"
+        body_path: release_notes.md
+        files: |
+          *.vsix
+        draft: false
+        prerelease: ${{ inputs.prerelease }}
+        make_latest: ${{ !inputs.prerelease }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Success Summary
+      run: |
+        echo "## 🎉 Manual Release Created!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Version:** v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Type:** ${{ inputs.prerelease && 'Pre-release' || 'Release' }}" >> $GITHUB_STEP_SUMMARY  
+        echo "**Package:** cp-ninja-${{ steps.version.outputs.version }}.vsix" >> $GITHUB_STEP_SUMMARY
+        echo "**Release URL:** https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+        echo "- [ ] Validate the release works correctly" >> $GITHUB_STEP_SUMMARY
+        echo "- [ ] Consider publishing to VS Code Marketplace" >> $GITHUB_STEP_SUMMARY
+        echo "- [ ] Update documentation if needed" >> $GITHUB_STEP_SUMMARY

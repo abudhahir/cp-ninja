@@ -9,13 +9,33 @@ import { ProfileChatHandler } from './ProfileChatHandler';
 import { OnboardingManager } from './OnboardingManager';
 import { EnhancedSuggestionEngine } from './EnhancedSuggestionEngine';
 import { ConfigurationManager } from './ConfigurationManager';
+import { DynamicSkillRegistry } from './DynamicSkillRegistry';
+import { AsyncSkillLoader } from './AsyncSkillLoader';
 // import { AutoProfileManager } from './AutoProfileManager';
+
+// Utility function to get the configured personal skills directory
+function getPersonalSkillsDirectory(): string {
+    const config = vscode.workspace.getConfiguration('cpNinja');
+    const customPath = config.get<string>('personalSkillsDirectory', '');
+    
+    if (customPath && customPath.trim()) {
+        // Use custom path, resolve ~ and environment variables
+        const resolvedPath = customPath.replace(/^~/, process.env.HOME || process.env.USERPROFILE || '')
+                                      .replace(/\$\{([^}]+)\}/g, (match, envVar) => process.env[envVar] || match);
+        return path.resolve(resolvedPath, 'skills');
+    }
+    
+    // Default to ~/.cp-ninja/skills
+    return path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja', 'skills');
+}
 
 let extensionBasePath: string; // Declare globally
 let profileChatHandler: ProfileChatHandler; // Profile chat handler instance
 let onboardingManager: OnboardingManager;
 let enhancedSuggestionEngine: EnhancedSuggestionEngine;
 let configurationManager: ConfigurationManager;
+let dynamicSkillRegistry: DynamicSkillRegistry;
+let asyncSkillLoader: AsyncSkillLoader;
 // let autoProfileManager: AutoProfileManager;
 
 // Utility function to copy agents directory to .github/prompts
@@ -63,7 +83,7 @@ async function copyAgentsToGitHubPrompts(extensionPath: string): Promise<void> {
 // Define the main chat handler for @cp-ninja participant  
 const mainChatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRequest, context: vscode.ChatContext, stream: vscode.ChatResponseStream): Promise<vscode.ChatResult> => {
     const skillsDir = path.join(extensionBasePath, 'skills');
-    const personalSkillsDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja', 'skills');
+    const personalSkillsDir = getPersonalSkillsDirectory();
 
     // Bootstrap: On the first turn, inject the using-cp-ninja skill
     if (context.history.length === 0) {
@@ -125,8 +145,19 @@ const mainChatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRe
             }
         }
 
-        // Handle regular skill commands
+        // Handle regular skill commands - use dynamic registry first
         const skillName = request.command;
+        
+        // Try dynamic registry first
+        if (dynamicSkillRegistry?.isSkillRegistered(skillName)) {
+            const skillContent = await dynamicSkillRegistry.loadSkillContent(skillName);
+            if (skillContent) {
+                stream.markdown(`**Using skill: ${skillName}**\n\n` + skillContent.content);
+                return {};
+            }
+        }
+        
+        // Fallback to static resolution
         const skill = resolveSkillPath(skillName, skillsDir, personalSkillsDir);
         if (skill) {
             const skillContent = fs.readFileSync(skill.skillFile, 'utf8');
@@ -153,9 +184,10 @@ const mainChatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRe
     }
 
     // Show available skills and usage instructions (default behavior)
+    const dynamicSkills = dynamicSkillRegistry?.getAllSkills() || [];
     const cpNinjaSkills = findSkillsInDir(skillsDir, 'cp-ninja');
     const personalSkills = findSkillsInDir(personalSkillsDir, 'personal');
-    const allSkills = [...cpNinjaSkills, ...personalSkills];
+    const allSkills = [...cpNinjaSkills, ...personalSkills, ...dynamicSkills.map(s => ({ name: s.name, description: s.description }))];
 
     if (allSkills.length === 0) {
         stream.markdown('No skills found.');
@@ -169,7 +201,7 @@ const mainChatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRe
     return {};
 };
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, your extension "cp-ninja" is now active!');
 
     extensionBasePath = context.extensionPath; // Store the extension path
@@ -180,7 +212,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     const skillsDir = path.join(context.extensionPath, 'skills');
-    const personalSkillsDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja', 'skills');
+    const personalSkillsDir = getPersonalSkillsDirectory();
     
     // Initialize ProfileChatHandler
     const agentsDir = path.join(context.extensionPath, 'templates', 'agents');
@@ -198,6 +230,19 @@ export function activate(context: vscode.ExtensionContext) {
         onboardingManager = new OnboardingManager(context);
         configurationManager = new ConfigurationManager(context);
         enhancedSuggestionEngine = new EnhancedSuggestionEngine(skillsDir, personalSkillsDir, context);
+        
+        // Initialize dynamic skill loading system
+        dynamicSkillRegistry = new DynamicSkillRegistry(skillsDir, personalSkillsDir);
+        asyncSkillLoader = new AsyncSkillLoader(skillsDir, personalSkillsDir);
+        
+        // Auto-reload personal skills when files change (packaged skills are static)
+        const autoReloadDisposable = dynamicSkillRegistry.enableAutoReload();
+        context.subscriptions.push(autoReloadDisposable);
+        
+        // Initialize skills registry - eagerly load packaged skills, set up personal skills
+        await dynamicSkillRegistry.initialize();
+        
+        console.log('Packaged skills loaded eagerly, personal skills ready for dynamic loading');
         
         // Initialize auto-profile system (Phase 1 & 2) - commented out to fix lint
         // autoProfileManager = new AutoProfileManager(context, profileChatHandler);
@@ -349,6 +394,78 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showSkillsQuickPick', async () => {
         const skillQuickPick = new SkillQuickPick(skillsDir, personalSkillsDir);
         await skillQuickPick.showSkillPicker();
+    }));
+
+    // Register dynamic skill management commands
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.reloadSkills', async () => {
+        if (dynamicSkillRegistry) {
+            await dynamicSkillRegistry.reloadPersonalSkills();
+            vscode.window.showInformationMessage('Personal skills reloaded successfully! (Packaged skills are always available)');
+            
+            // Refresh tree view
+            if (enhancedSkillsTreeDataProvider) {
+                enhancedSkillsTreeDataProvider.refresh();
+            }
+        }
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.createDynamicSkill', async () => {
+        const name = await vscode.window.showInputBox({
+            prompt: 'Enter skill name',
+            placeHolder: 'my-custom-skill'
+        });
+        
+        if (!name) return;
+        
+        const description = await vscode.window.showInputBox({
+            prompt: 'Enter skill description',
+            placeHolder: 'What does this skill do?'
+        });
+        
+        if (!description) return;
+        
+        const content = await vscode.window.showInputBox({
+            prompt: 'Enter skill content (markdown)',
+            placeHolder: '# My Custom Skill\n\nThis skill helps with...',
+            value: `# ${name}\n\n## Overview\n\n${description}\n\n## Instructions\n\n1. Step one\n2. Step two\n3. Step three`
+        });
+        
+        if (!content) return;
+        
+        if (dynamicSkillRegistry) {
+            const success = await dynamicSkillRegistry.registerSkillFromContent(name, content, description);
+            if (success) {
+                vscode.window.showInformationMessage(`Dynamic skill "${name}" created successfully!`);
+                // Refresh tree view
+                if (enhancedSkillsTreeDataProvider) {
+                    enhancedSkillsTreeDataProvider.refresh();
+                }
+            } else {
+                vscode.window.showErrorMessage(`Failed to create skill "${name}"`);
+            }
+        }
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showSkillStats', async () => {
+        if (dynamicSkillRegistry && asyncSkillLoader) {
+            const packagedSkills = dynamicSkillRegistry.getPackagedSkills();
+            const personalSkills = dynamicSkillRegistry.getPersonalSkills();
+            const cacheStats = asyncSkillLoader.getCacheStats();
+            
+            const message = `**Skill Loading Statistics:**\n\n` +
+                `- Packaged Skills (Eager): ${packagedSkills.length}\n` +
+                `- Personal Skills (Dynamic): ${personalSkills.length}\n` +
+                `- Total Skills: ${packagedSkills.length + personalSkills.length}\n\n` +
+                `**Cache Status:**\n` +
+                `- Packaged Skills Cached: ${cacheStats.packagedSize}\n` +
+                `- Personal Skills Cached: ${cacheStats.personalSize}\n` +
+                `- Currently Loading: ${cacheStats.loadingCount}\n\n` +
+                `**Loading Strategy:**\n` +
+                `- Packaged skills are loaded eagerly on startup\n` +
+                `- Personal skills are loaded on-demand for better performance`;
+                
+            vscode.window.showInformationMessage(message);
+        }
     }));
 }
 

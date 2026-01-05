@@ -1,0 +1,250 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+        - patch
+        - minor
+        - major
+      create_release:
+        description: 'Create GitHub release'
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      should_release: ${{ steps.check.outputs.should_release }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Lint and validate
+      run: |
+        npm run compile
+        # Add linting if you have it configured
+        # npm run lint
+
+    - name: Check if should create release
+      id: check
+      run: |
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.create_release }}" == "true" ]]; then
+          echo "should_release=true" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+          echo "should_release=true" >> $GITHUB_OUTPUT
+        elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+          echo "should_release=true" >> $GITHUB_OUTPUT
+        else
+          echo "should_release=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Configure Git
+      if: steps.check.outputs.should_release == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+    - name: Increment version
+      if: steps.check.outputs.should_release == 'true'
+      id: version
+      run: |
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          RELEASE_TYPE="${{ inputs.release_type }}"
+        elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+          # Extract version from tag and set it directly
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          npm version $TAG_VERSION --no-git-tag-version
+          echo "version=$TAG_VERSION" >> $GITHUB_OUTPUT
+          exit 0
+        else
+          RELEASE_TYPE="patch"
+        fi
+        
+        # Get current version
+        CURRENT_VERSION=$(node -p "require('./package.json').version")
+        echo "Current version: $CURRENT_VERSION"
+        
+        # Increment version
+        NEW_VERSION=$(npm version $RELEASE_TYPE --no-git-tag-version)
+        NEW_VERSION=${NEW_VERSION#v} # Remove 'v' prefix
+        echo "New version: $NEW_VERSION"
+        echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        
+        # Commit version bump
+        git add package.json
+        git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
+
+    - name: Install VSCE
+      if: steps.check.outputs.should_release == 'true'
+      run: npm install -g @vscode/vsce
+
+    - name: Package extension
+      if: steps.check.outputs.should_release == 'true'
+      run: |
+        vsce package --out cp-ninja-${{ steps.version.outputs.version }}.vsix
+        
+        # Verify the package was created
+        if [ ! -f "cp-ninja-${{ steps.version.outputs.version }}.vsix" ]; then
+          echo "Error: VSIX package not found"
+          exit 1
+        fi
+        
+        # Get package info
+        ls -la *.vsix
+        echo "Package size: $(stat -f%z cp-ninja-${{ steps.version.outputs.version }}.vsix 2>/dev/null || stat -c%s cp-ninja-${{ steps.version.outputs.version }}.vsix) bytes"
+
+    - name: Upload build artifacts
+      if: steps.check.outputs.should_release == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: vsix-package
+        path: "*.vsix"
+        retention-days: 90
+
+    - name: Push version bump
+      if: steps.check.outputs.should_release == 'true' && github.event_name != 'pull_request'
+      run: |
+        git push origin ${{ github.ref_name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: needs.build.outputs.should_release == 'true' && github.event_name != 'pull_request'
+    
+    permissions:
+      contents: write
+      
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: vsix-package
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Create a simple changelog based on recent commits
+        CHANGELOG=$(git log --pretty=format:"- %s" --since="$(git log -1 --format=%ai HEAD~10 2>/dev/null || echo '1 week ago')" --grep="^feat" --grep="^fix" --grep="^docs" --grep="^chore" | head -20)
+        if [ -z "$CHANGELOG" ]; then
+          CHANGELOG="- Various improvements and bug fixes"
+        fi
+        
+        # Create release body
+        cat << EOF > release_body.md
+        ## 🚀 Release v${{ needs.build.outputs.version }}
+        
+        ### Changes
+        $CHANGELOG
+        
+        ### 📦 Installation
+        
+        **From VS Code Marketplace:**
+        1. Open VS Code Extensions (Ctrl+Shift+X)
+        2. Search for "Copilot Ninja Skills"
+        3. Click Install
+        
+        **Manual Installation:**
+        1. Download the \`cp-ninja-${{ needs.build.outputs.version }}.vsix\` file below
+        2. Open VS Code
+        3. Press Ctrl+Shift+P and type "Extensions: Install from VSIX"
+        4. Select the downloaded file
+        
+        ### ✨ Features
+        - 🎯 19 built-in development skills
+        - 💬 GitHub Copilot Chat integration
+        - 🌟 Skills Explorer with favorites
+        - ⚙️ Configurable personal skills directory
+        - 🔄 Dynamic skill loading with hot reload
+        - 📊 Context-aware suggestions
+        
+        ---
+        **Full Changelog:** https://github.com/${{ github.repository }}/compare/v${{ needs.build.outputs.version }}...HEAD
+        EOF
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ needs.build.outputs.version }}
+        name: "Release v${{ needs.build.outputs.version }}"
+        body_path: release_body.md
+        files: |
+          *.vsix
+        draft: false
+        prerelease: false
+        make_latest: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Release Summary
+      run: |
+        echo "## 🎉 Release Created Successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Version:** v${{ needs.build.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Artifacts:** cp-ninja-${{ needs.build.outputs.version }}.vsix" >> $GITHUB_STEP_SUMMARY
+        echo "**Release URL:** https://github.com/${{ github.repository }}/releases/tag/v${{ needs.build.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+        echo "- [ ] Test the release in VS Code" >> $GITHUB_STEP_SUMMARY
+        echo "- [ ] Publish to VS Code Marketplace (if configured)" >> $GITHUB_STEP_SUMMARY
+        echo "- [ ] Update documentation if needed" >> $GITHUB_STEP_SUMMARY
+
+  # Optional: Publish to VS Code Marketplace
+  # Uncomment and configure if you have marketplace publishing set up
+  # publish:
+  #   needs: [build, release]
+  #   runs-on: ubuntu-latest
+  #   if: needs.build.outputs.should_release == 'true' && github.event_name != 'pull_request'
+  #   
+  #   steps:
+  #   - name: Checkout code
+  #     uses: actions/checkout@v4
+  #   
+  #   - name: Setup Node.js
+  #     uses: actions/setup-node@v4
+  #     with:
+  #       node-version: '18'
+  #   
+  #   - name: Download artifacts
+  #     uses: actions/download-artifact@v4
+  #     with:
+  #       name: vsix-package
+  #   
+  #   - name: Install VSCE
+  #     run: npm install -g @vscode/vsce
+  #   
+  #   - name: Publish to VS Code Marketplace
+  #     run: |
+  #       vsce publish --packagePath cp-ninja-${{ needs.build.outputs.version }}.vsix
+  #     env:
+  #       VSCE_PAT: ${{ secrets.VSCE_PAT }}
