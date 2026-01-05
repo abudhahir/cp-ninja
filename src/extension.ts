@@ -12,8 +12,6 @@ import { EnhancedSuggestionEngine } from './EnhancedSuggestionEngine';
 import { ConfigurationManager } from './ConfigurationManager';
 import { DynamicSkillRegistry } from './DynamicSkillRegistry';
 import { AsyncSkillLoader } from './AsyncSkillLoader';
-import { RemoteResourceManager } from './RemoteResourceManager';
-import { RemoteResource, GitRepositoryConfig } from './types/ResourceTypes';
 // import { AutoProfileManager } from './AutoProfileManager';
 
 // Utility function to get the configured personal skills directory
@@ -39,7 +37,6 @@ let enhancedSuggestionEngine: EnhancedSuggestionEngine;
 let configurationManager: ConfigurationManager;
 let dynamicSkillRegistry: DynamicSkillRegistry;
 let asyncSkillLoader: AsyncSkillLoader;
-let remoteResourceManager: RemoteResourceManager;
 // let autoProfileManager: AutoProfileManager;
 
 // Utility function to copy agents directory to .github/prompts
@@ -238,17 +235,6 @@ export async function activate(context: vscode.ExtensionContext) {
         // Initialize dynamic skill loading system
         dynamicSkillRegistry = new DynamicSkillRegistry(skillsDir, personalSkillsDir);
         asyncSkillLoader = new AsyncSkillLoader(skillsDir, personalSkillsDir);
-        
-        // Initialize RemoteResourceManager
-        const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
-        // Use VS Code User directory (same as GitHub Copilot) for global resources
-        // globalStorageUri is at: ~/Library/Application Support/Code/User/globalStorage/publisher.extension/
-        // We need: ~/Library/Application Support/Code/User/
-        const globalStoragePath = context.globalStorageUri.fsPath;
-        const userDirectory = path.join(globalStoragePath, '..', '..');
-        const globalGitHubDir = path.join(userDirectory, 'prompts');
-        const globalCpNinjaDir = path.join(userDirectory, 'cp-ninja');
-        remoteResourceManager = new RemoteResourceManager(workspacePath, globalGitHubDir, globalCpNinjaDir);
         
         // Auto-reload personal skills when files change (packaged skills are static)
         const autoReloadDisposable = dynamicSkillRegistry.enableAutoReload();
@@ -482,157 +468,6 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     }));
 
-    // Register browse remote resources command
-    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.browseRemoteResources', async () => {
-        console.log('=== Browse Remote Resources command triggered ===');
-        try {
-            // Get configured repositories
-            const repos = RemoteResourceManager.getConfiguredRepositories();
-            console.log(`Found ${repos.length} configured repositories`);
-            
-            if (repos.length === 0) {
-                const configure = await vscode.window.showWarningMessage(
-                    'No remote repositories configured. Would you like to configure one now?',
-                    'Open Settings'
-                );
-                if (configure === 'Open Settings') {
-                    vscode.commands.executeCommand('workbench.action.openSettings', 'cpNinja.remoteRepositories');
-                }
-                return;
-            }
-            
-            // Let user select repository if multiple
-            let selectedRepo: GitRepositoryConfig;
-            if (repos.length === 1) {
-                selectedRepo = repos[0];
-                console.log('Using single configured repo:', selectedRepo.url);
-            } else {
-                const repoItems = repos.map(repo => ({
-                    label: repo.url.split('/').slice(-2).join('/'),
-                    description: repo.url,
-                    repo: repo
-                }));
-                const selected = await vscode.window.showQuickPick(repoItems, {
-                    placeHolder: 'Select a repository to browse'
-                });
-                if (!selected) return;
-                selectedRepo = selected.repo;
-                console.log('User selected repo:', selectedRepo.url);
-            }
-            
-            // Show loading message and fetch resources
-            await vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
-                title: 'Fetching remote resources...',
-                cancellable: false
-            }, async () => {
-                // Fetch available resources
-                const resources = await remoteResourceManager.listRemoteResources(selectedRepo);
-                
-                if (resources.length === 0) {
-                    vscode.window.showInformationMessage('No resources found in the remote repository.');
-                    return;
-                }
-                
-                // Group resources by type for display
-                const groupedResources = resources.reduce((acc, resource) => {
-                    if (!acc[resource.type]) {
-                        acc[resource.type] = [];
-                    }
-                    acc[resource.type].push(resource);
-                    return acc;
-                }, {} as Record<string, RemoteResource[]>);
-                
-                // Create QuickPick items with type separators
-                const quickPickItems: (vscode.QuickPickItem & { resource?: RemoteResource })[] = [];
-                const typeIcons: Record<string, string> = {
-                    agent: '🤖',
-                    prompt: '📝',
-                    skill: '⚡',
-                    instruction: '📄',
-                    profile: '👤'
-                };
-                
-                for (const [type, typeResources] of Object.entries(groupedResources)) {
-                    quickPickItems.push({
-                        label: `${typeIcons[type] || '📦'} ${type.charAt(0).toUpperCase() + type.slice(1)}s (${typeResources.length})`,
-                        kind: vscode.QuickPickItemKind.Separator
-                    });
-                    
-                    typeResources.forEach(resource => {
-                        quickPickItems.push({
-                            label: resource.name,
-                            description: resource.description,
-                            resource: resource
-                        });
-                    });
-                }
-                
-                // Show multi-select QuickPick
-                const selected = await vscode.window.showQuickPick(quickPickItems.filter(item => item.resource), {
-                    canPickMany: true,
-                    placeHolder: 'Select resources to download (use Space to select, Enter to confirm)'
-                });
-                
-                if (!selected || selected.length === 0) return;
-                
-                const resourcesToFetch = selected.map(item => item.resource!);
-                
-                // Choose destination
-                const destination = await vscode.window.showQuickPick([
-                    { 
-                        label: '📁 Project', 
-                        description: '.github/prompts/ and .cp-ninja/', 
-                        value: 'project' as const 
-                    },
-                    { 
-                        label: '🌍 Global', 
-                        description: 'VS Code User directory (shared with GitHub Copilot)', 
-                        value: 'global' as const 
-                    }
-                ], {
-                    placeHolder: 'Where do you want to save these resources?'
-                });
-                
-                if (!destination) return;
-                
-                // Fetch and save resources
-                const result = await remoteResourceManager.fetchResources(
-                    resourcesToFetch,
-                    destination.value,
-                    selectedRepo
-                );
-                
-                // Show results
-                if (result.success.length > 0) {
-                    // Show brief notification
-                    vscode.window.showInformationMessage(
-                        `✅ Successfully downloaded ${result.success.length} resource(s). Check Output → CP Ninja Remote Resources for details.`
-                    );
-                    
-                    // Show detailed paths in output channel
-                    const outputChannel = vscode.window.createOutputChannel('CP Ninja Remote Resources');
-                    outputChannel.appendLine('\n=== Downloaded Resources ===');
-                    result.success.forEach(item => {
-                        outputChannel.appendLine(`✓ ${item.name}`);
-                        outputChannel.appendLine(`  → ${item.path}`);
-                    });
-                    outputChannel.appendLine('');
-                    outputChannel.show(true); // Show without stealing focus
-                }
-                
-                if (result.failed.length > 0) {
-                    vscode.window.showErrorMessage(
-                        `❌ Failed to download ${result.failed.length} resource(s). Check Output for details.`
-                    );
-                }
-            });
-        } catch (error) {
-            vscode.window.showErrorMessage(
-                `Failed to browse remote resources: ${error instanceof Error ? error.message : 'Unknown error'}`
-            );
-        }
-    }));
 }
 
 export function deactivate() {}

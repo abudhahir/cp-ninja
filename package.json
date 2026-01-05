@@ -97,12 +97,6 @@
         "command": "cp-ninja.openSkillInEditor",
         "title": "Open Skill in Editor",
         "category": "Copilot Ninja"
-      },
-      {
-        "command": "cp-ninja.browseRemoteResources",
-        "title": "Browse Remote Resources",
-        "category": "Copilot Ninja",
-        "icon": "$(cloud-download)"
       }
     ],
     "chatParticipants": [
@@ -308,57 +302,6 @@
           "minimum": 0.1,
           "maximum": 1,
           "description": "Minimum confidence threshold for automatic profile detection (0.1-1.0)."
-        },
-        "cpNinja.remoteRepositories": {
-          "type": "array",
-          "default": [],
-          "description": "Remote Git repositories containing agents, prompts, skills, and other resources.",
-          "items": {
-            "type": "object",
-            "properties": {
-              "url": {
-                "type": "string",
-                "description": "Git repository URL (GitHub or GitLab)"
-              },
-              "branch": {
-                "type": "string",
-                "default": "main",
-                "description": "Branch to fetch resources from"
-              },
-              "token": {
-                "type": "string",
-                "description": "Authentication token (use ${env:VAR_NAME} for environment variables)"
-              },
-              "paths": {
-                "type": "object",
-                "properties": {
-                  "agents": {
-                    "type": "string",
-                    "description": "Path to agents directory in repository"
-                  },
-                  "prompts": {
-                    "type": "string",
-                    "description": "Path to prompts directory in repository"
-                  },
-                  "skills": {
-                    "type": "string",
-                    "description": "Path to skills directory in repository"
-                  },
-                  "instructions": {
-                    "type": "string",
-                    "description": "Path to instructions directory in repository"
-                  },
-                  "profiles": {
-                    "type": "string",
-                    "description": "Path to profiles directory in repository"
-                  }
-                }
-              }
-            },
-            "required": [
-              "url"
-            ]
-          }
         }
       }
     }
