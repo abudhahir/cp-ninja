@@ -1,6 +1,7 @@
 # cp-ninja: Superpowers for GitHub Copilot
 
 A powerful VS Code extension that enhances GitHub Copilot with structured "skills" - reusable development workflows, best practices, and methodologies. Transform your AI assistant into a knowledgeable pair programming partner with context-aware suggestions and guided workflows.
+updated
 
 ## ✨ Features
 
