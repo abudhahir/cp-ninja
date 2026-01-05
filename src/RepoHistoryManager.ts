@@ -67,4 +67,14 @@ export class RepoHistoryManager {
             []
         );
     }
+
+    async removeFromHistory(url: string): Promise<void> {
+        const history = await this.getHistory();
+        const filtered = history.filter(entry => entry.url !== url);
+        
+        await this.context.globalState.update(
+            RepoHistoryManager.STORAGE_KEY,
+            filtered
+        );
+    }
 }

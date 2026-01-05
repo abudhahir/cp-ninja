@@ -38,4 +38,16 @@ describe('RepoHistoryManager', () => {
         const history = await manager.getHistory();
         expect(history).toHaveLength(0);
     });
+
+    test('removeFromHistory removes specific entry', async () => {
+        await manager.addToHistory('owner/repo1', 5, 3, 1, 0);
+        await manager.addToHistory('owner/repo2', 2, 1, 0, 1);
+        await manager.addToHistory('owner/repo3', 3, 2, 1, 0);
+        
+        await manager.removeFromHistory('owner/repo2');
+        
+        const history = await manager.getHistory();
+        expect(history).toHaveLength(2);
+        expect(history.find(e => e.url === 'owner/repo2')).toBeUndefined();
+    });
 });
