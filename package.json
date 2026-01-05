@@ -2,7 +2,7 @@
   "name": "cp-ninja",
   "displayName": "Copilot Ninja Skills",
   "description": "Enhance GitHub Copilot with structured skills, workflows, and best practices. Features 19 built-in skills, personal skill creation, smart suggestions, and native chat integration.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "copilot-ninja",
   "author": {
     "name": "Cleveloper - Copilot Ninja",
@@ -355,7 +355,9 @@
                 }
               }
             },
-            "required": ["url"]
+            "required": [
+              "url"
+            ]
           }
         }
       }
