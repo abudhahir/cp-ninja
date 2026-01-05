@@ -124,14 +124,12 @@ jobs:
         # Verify the package was created
         if [ ! -f "cp-ninja-${{ steps.version.outputs.version }}.vsix" ]; then
           echo "Error: VSIX package not found after packaging"
-          echo "Files in current directory:"
-          ls -la
           exit 1
         fi
         
         # Get package info
         ls -la *.vsix
-        PACKAGE_SIZE=$(stat -c%s "cp-ninja-${{ steps.version.outputs.version }}.vsix" 2>/dev/null || echo "unknown")
+        PACKAGE_SIZE=$(stat -c%s "cp-ninja-${{ steps.version.outputs.version }}.vsix" 2>/dev/null)
         echo "✅ Package created successfully: cp-ninja-${{ steps.version.outputs.version }}.vsix ($PACKAGE_SIZE bytes)"
 
     - name: Upload build artifacts
