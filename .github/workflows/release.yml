@@ -27,6 +27,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     
+    permissions:
+      contents: write
+    
     outputs:
       version: ${{ steps.version.outputs.version }}
       should_release: ${{ steps.check.outputs.should_release }}
@@ -109,17 +112,27 @@ jobs:
     - name: Package extension
       if: steps.check.outputs.should_release == 'true'
       run: |
-        vsce package --out cp-ninja-${{ steps.version.outputs.version }}.vsix
+        echo "Packaging version ${{ steps.version.outputs.version }}..."
+        vsce package --out cp-ninja-${{ steps.version.outputs.version }}.vsix || {
+          echo "ERROR: vsce package command failed"
+          echo "Current directory: $(pwd)"
+          echo "Files in current directory:"
+          ls -la
+          exit 1
+        }
         
         # Verify the package was created
         if [ ! -f "cp-ninja-${{ steps.version.outputs.version }}.vsix" ]; then
-          echo "Error: VSIX package not found"
+          echo "Error: VSIX package not found after packaging"
+          echo "Files in current directory:"
+          ls -la
           exit 1
         fi
         
         # Get package info
         ls -la *.vsix
-        echo "Package size: $(stat -f%z cp-ninja-${{ steps.version.outputs.version }}.vsix 2>/dev/null || stat -c%s cp-ninja-${{ steps.version.outputs.version }}.vsix) bytes"
+        PACKAGE_SIZE=$(stat -c%s "cp-ninja-${{ steps.version.outputs.version }}.vsix" 2>/dev/null || echo "unknown")
+        echo "✅ Package created successfully: cp-ninja-${{ steps.version.outputs.version }}.vsix ($PACKAGE_SIZE bytes)"
 
     - name: Upload build artifacts
       if: steps.check.outputs.should_release == 'true'
