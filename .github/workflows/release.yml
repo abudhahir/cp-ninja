@@ -137,7 +137,7 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: needs.build.outputs.should_release == 'true' && github.event_name != 'pull_request'
+    if: needs.build.result == 'success' && needs.build.outputs.should_release == 'true' && github.event_name != 'pull_request'
     
     permissions:
       contents: write
