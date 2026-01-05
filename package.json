@@ -5,7 +5,7 @@
   "version": "0.1.1",
   "publisher": "copilot-ninja",
   "author": {
-    "name": "Copilot Ninja Team",
+    "name": "Cleveloper - Copilot Ninja",
     "email": "contact@cp-ninja.dev"
   },
   "keywords": [
@@ -194,6 +194,7 @@
     "views": {
       "cp-ninja-sidebar": [
         {
+          "type": "webview",
           "id": "cp-ninja.skillsView",
           "name": "Skills Explorer"
         }
@@ -202,19 +203,19 @@
     "menus": {
       "view/title": [
         {
-          "command": "cp-ninja.showSkillsQuickPick",
+          "command": "cp-ninja.searchSkills",
           "when": "view == cp-ninja.skillsView",
           "group": "navigation@0"
         },
         {
-          "command": "cp-ninja.searchSkills",
+          "command": "cp-ninja.showSkillsQuickPick",
           "when": "view == cp-ninja.skillsView",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "cp-ninja.toggleFavorites",
           "when": "view == cp-ninja.skillsView",
-          "group": "navigation"
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [

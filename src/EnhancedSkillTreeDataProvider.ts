@@ -9,6 +9,14 @@ export class EnhancedSkillTreeDataProvider implements vscode.TreeDataProvider<Sk
     private searchFilter: string = '';
     private categoryFilter: string = 'all';
     private showFavoritesOnly: boolean = false;
+    private treeView?: vscode.TreeView<SkillItem>;
+    
+    /**
+     * Get the current search filter text
+     */
+    public getSearchFilter(): string {
+        return this.searchFilter;
+    }
     
     constructor(
         private skillsDir: string, 
@@ -16,6 +24,13 @@ export class EnhancedSkillTreeDataProvider implements vscode.TreeDataProvider<Sk
         private extensionBasePath: string,
         private configManager?: ConfigurationManager
     ) {}
+
+    /**
+     * Set the tree view reference for filtering support
+     */
+    public setTreeView(treeView: vscode.TreeView<SkillItem>): void {
+        this.treeView = treeView;
+    }
 
     getTreeItem(element: SkillItem): vscode.TreeItem {
         return element;
@@ -36,61 +51,81 @@ export class EnhancedSkillTreeDataProvider implements vscode.TreeDataProvider<Sk
                 )
             );
         } else {
-            // Root level - show categories with search/filter controls
+            // Root level - show all skills in flat list
             const items: SkillItem[] = [];
             
-            // Add filter controls at top
-            items.push(new SkillItem(
-                '🔍 Search Skills...',
-                'Click to search skills',
-                'control',
-                '',
-                vscode.TreeItemCollapsibleState.None,
-                false,
-                {
-                    command: 'cp-ninja.searchSkills',
-                    title: 'Search Skills',
-                    arguments: []
-                }
-            ));
-
-            if (this.showFavoritesOnly) {
+            // Add filter status indicator at the top if filter is active
+            if (this.searchFilter) {
                 items.push(new SkillItem(
-                    '⭐ Favorites',
-                    'Your favorite skills',
-                    'favorites',
+                    `🔍 Filter: "${this.searchFilter}"`,
+                    'Click to change or clear filter',
+                    'filter-status',
                     '',
-                    vscode.TreeItemCollapsibleState.Expanded,
-                    false
+                    vscode.TreeItemCollapsibleState.None,
+                    false,
+                    {
+                        command: 'cp-ninja.searchSkills',
+                        title: 'Change Filter',
+                        arguments: []
+                    }
                 ));
             } else {
-                // Add categories
-                const categories = await this.getSkillCategories();
-                items.push(...categories.map(category => 
-                    new SkillItem(
-                        category, 
-                        `Skills from ${category}`, 
-                        category, 
-                        '', 
-                        vscode.TreeItemCollapsibleState.Collapsed,
-                        false
-                    )
+                // Show search prompt when no filter is active
+                items.push(new SkillItem(
+                    '🔍 Type to search skills...',
+                    'Click to search by name or description',
+                    'search-prompt',
+                    '',
+                    vscode.TreeItemCollapsibleState.None,
+                    false,
+                    {
+                        command: 'cp-ninja.searchSkills',
+                        title: 'Search Skills',
+                        arguments: []
+                    }
                 ));
-
-                // Add recently used section if there are recent skills
-                const recentSkills = this.getRecentlyUsedSkills();
-                if (recentSkills.length > 0) {
-                    items.unshift(new SkillItem(
-                        '🕒 Recently Used',
-                        'Recently used skills',
-                        'recent',
-                        '',
-                        vscode.TreeItemCollapsibleState.Expanded,
-                        false
-                    ));
-                }
             }
-
+            
+            const cpNinjaSkills = findSkillsInDir(this.skillsDir, 'cp-ninja');
+            const personalSkills = findSkillsInDir(this.personalSkillsDir, 'personal');
+            const allSkills = [...cpNinjaSkills, ...personalSkills];
+            
+            // Apply filters
+            let filteredSkills = this.filterAndSortSkills(allSkills);
+            
+            // If showing favorites only, filter further
+            if (this.showFavoritesOnly) {
+                filteredSkills = filteredSkills.filter(skill => 
+                    this.isSkillFavorite(skill.name)
+                );
+            }
+            
+            // Convert to tree items
+            const skillItems = filteredSkills.map(skill => 
+                new SkillItem(
+                    skill.name,
+                    skill.description,
+                    skill.sourceType,
+                    skill.skillFile,
+                    vscode.TreeItemCollapsibleState.None,
+                    this.isSkillFavorite(skill.name)
+                )
+            );
+            
+            items.push(...skillItems);
+            
+            // Show "no results" message if filter is active but no skills match
+            if (this.searchFilter && skillItems.length === 0) {
+                items.push(new SkillItem(
+                    'No skills found',
+                    `No skills match "${this.searchFilter}"`,
+                    'no-results',
+                    '',
+                    vscode.TreeItemCollapsibleState.None,
+                    false
+                ));
+            }
+            
             return items;
         }
     }
@@ -177,6 +212,16 @@ export class EnhancedSkillTreeDataProvider implements vscode.TreeDataProvider<Sk
     // Public methods for filtering
     public setSearchFilter(filter: string): void {
         this.searchFilter = filter;
+        
+        // Update tree view description to show active filter
+        if (this.treeView) {
+            if (filter) {
+                this.treeView.description = `Filtered by: "${filter}"`;
+            } else {
+                this.treeView.description = undefined;
+            }
+        }
+        
         this._onDidChangeTreeData.fire();
     }
 
@@ -236,7 +281,13 @@ export class SkillItem extends vscode.TreeItem {
         this.tooltip = description;
         
         // Set appropriate icons
-        if (sourceType === 'control') {
+        if (sourceType === 'filter-status') {
+            this.iconPath = new vscode.ThemeIcon('filter');
+        } else if (sourceType === 'search-prompt') {
+            this.iconPath = new vscode.ThemeIcon('search');
+        } else if (sourceType === 'no-results') {
+            this.iconPath = new vscode.ThemeIcon('warning');
+        } else if (sourceType === 'control') {
             this.iconPath = new vscode.ThemeIcon('search');
         } else if (sourceType === 'recent') {
             this.iconPath = new vscode.ThemeIcon('history');

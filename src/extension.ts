@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import { promises as fsPromises } from 'fs';
 import { findSkillsInDir, resolveSkillPath, stripFrontmatter } from './lib/skills-core';
 import { EnhancedSkillTreeDataProvider } from './EnhancedSkillTreeDataProvider';
+import { SkillsWebviewProvider } from './SkillsWebviewProvider';
 import { SkillQuickPick } from './lib/SkillQuickPick';
 import { ProfileChatHandler } from './ProfileChatHandler';
 import { OnboardingManager } from './OnboardingManager';
@@ -291,12 +292,20 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     }));
 
-    // Enhanced Skills Explorer View with search and filtering
-    const enhancedSkillsTreeDataProvider = new EnhancedSkillTreeDataProvider(skillsDir, personalSkillsDir, extensionBasePath, configurationManager);
-    vscode.window.createTreeView('cp-ninja.skillsView', { 
-        treeDataProvider: enhancedSkillsTreeDataProvider,
-        showCollapseAll: true
-    });
+    // Enhanced Skills Explorer View with embedded search box
+    const skillsWebviewProvider = new SkillsWebviewProvider(
+        context.extensionUri,
+        skillsDir,
+        personalSkillsDir,
+        configurationManager
+    );
+    
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(
+            SkillsWebviewProvider.viewType,
+            skillsWebviewProvider
+        )
+    );
 
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.useSkillFromView', async (skillName: string) => {
         // Track skill usage
@@ -309,43 +318,34 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage(`In the chat view, type: @cp-ninja /${skillName}`);
     }));
 
-    // Register command for opening skills directly in editor from tree view
-    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.openSkillInEditor', async (skillItem: any) => {
-        if (enhancedSkillsTreeDataProvider && skillItem) {
-            await enhancedSkillsTreeDataProvider.openSkillInEditor(skillItem);
-        }
-    }));
+    // Command for opening skills in editor is now handled by webview
 
-    // Add search skills command
+    // Add search skills command - now opens quick pick as alternative to webview search
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.searchSkills', async () => {
-        const searchTerm = await vscode.window.showInputBox({
-            prompt: 'Search skills by name or description',
-            placeHolder: 'Enter search term...'
-        });
-        
-        if (searchTerm !== undefined) {
-            enhancedSkillsTreeDataProvider.setSearchFilter(searchTerm);
-        }
+        // Open the quick pick for skill search
+        await vscode.commands.executeCommand('cp-ninja.showSkillsQuickPick');
     }));
 
     // Add toggle favorites command
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.toggleFavorites', () => {
-        enhancedSkillsTreeDataProvider.toggleFavoritesView();
+        // For webview, we just refresh - filtering is done in the search box
+        skillsWebviewProvider.refresh();
+        vscode.window.showInformationMessage('Favorites toggled');
     }));
 
     // Add skill to favorites command
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.addToFavorites', async (skillItem: any) => {
-        const skillName = skillItem.label.replace('⭐ ', ''); // Remove star if present
+        const skillName = skillItem?.label?.replace('⭐ ', '') || skillItem?.skillName || skillItem;
         await configurationManager.addToFavorites(skillName);
-        enhancedSkillsTreeDataProvider.refresh();
+        skillsWebviewProvider.refresh();
         vscode.window.showInformationMessage(`Added "${skillName}" to favorites`);
     }));
 
     // Remove skill from favorites command
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.removeFromFavorites', async (skillItem: any) => {
-        const skillName = skillItem.label.replace('⭐ ', ''); // Remove star if present
+        const skillName = skillItem?.label?.replace('⭐ ', '') || skillItem?.skillName || skillItem;
         await configurationManager.removeFromFavorites(skillName);
-        enhancedSkillsTreeDataProvider.refresh();
+        skillsWebviewProvider.refresh();
         vscode.window.showInformationMessage(`Removed "${skillName}" from favorites`);
     }));
 
@@ -402,9 +402,9 @@ export async function activate(context: vscode.ExtensionContext) {
             await dynamicSkillRegistry.reloadPersonalSkills();
             vscode.window.showInformationMessage('Personal skills reloaded successfully! (Packaged skills are always available)');
             
-            // Refresh tree view
-            if (enhancedSkillsTreeDataProvider) {
-                enhancedSkillsTreeDataProvider.refresh();
+            // Refresh webview
+            if (skillsWebviewProvider) {
+                skillsWebviewProvider.refresh();
             }
         }
     }));
@@ -436,9 +436,9 @@ export async function activate(context: vscode.ExtensionContext) {
             const success = await dynamicSkillRegistry.registerSkillFromContent(name, content, description);
             if (success) {
                 vscode.window.showInformationMessage(`Dynamic skill "${name}" created successfully!`);
-                // Refresh tree view
-                if (enhancedSkillsTreeDataProvider) {
-                    enhancedSkillsTreeDataProvider.refresh();
+                // Refresh webview
+                if (skillsWebviewProvider) {
+                    skillsWebviewProvider.refresh();
                 }
             } else {
                 vscode.window.showErrorMessage(`Failed to create skill "${name}"`);
