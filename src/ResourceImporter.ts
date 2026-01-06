@@ -128,22 +128,25 @@ export class ResourceImporter {
             // User-global paths
             const homeDir = process.env.HOME || process.env.USERPROFILE || '';
             const cpNinjaDir = path.join(homeDir, '.cp-ninja');
+            
+            // VS Code User profile location (check both regular and Insiders)
+            const vscodeInsidersProfile = path.join(homeDir, 'Library', 'Application Support', 'Code - Insiders', 'User');
+            const vscodeProfile = path.join(homeDir, 'Library', 'Application Support', 'Code', 'User');
+            const vscodeUserProfile = fs.existsSync(vscodeInsidersProfile) ? vscodeInsidersProfile : vscodeProfile;
 
             switch (type) {
                 case 'skill':
                     const skillName = this.extractSkillName(fileName);
                     return path.join(cpNinjaDir, 'skills', skillName, 'SKILL.md');
                 case 'prompt':
-                    // Prompts go to user profile's .github/prompts for VS Code Copilot
-                    // This works across all workspaces
-                    return path.join(homeDir, '.github', 'prompts', fileName);
+                    // Prompts go to VS Code User profile prompts folder
+                    return path.join(vscodeUserProfile, 'prompts', fileName);
                 case 'instruction':
-                    // Instructions go to user profile's .github/instructions for VS Code Copilot
-                    // This works across all workspaces per VS Code documentation
-                    return path.join(homeDir, '.github', 'instructions', fileName);
+                    // Instructions go to VS Code User profile instructions folder
+                    return path.join(vscodeUserProfile, 'instructions', fileName);
                 case 'agent':
-                    // Agents also go to user profile's .github/prompts
-                    return path.join(homeDir, '.github', 'prompts', fileName);
+                    // Agents also go to VS Code User profile prompts folder
+                    return path.join(vscodeUserProfile, 'prompts', fileName);
             }
         }
     }
