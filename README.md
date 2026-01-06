@@ -2,6 +2,8 @@
 
 A VS Code extension that enhances GitHub Copilot with structured, reusable skills - development workflows and best practices delivered through a chat participant.
 
+> **Note:** Skills are currently supported by VS Code Insiders - ref: https://code.visualstudio.com/docs/copilot/customization/agent-skills
+
 ## Features
 
 - **19 built-in skills** for common development workflows
