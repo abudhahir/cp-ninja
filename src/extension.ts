@@ -225,7 +225,7 @@ export async function activate(context: vscode.ExtensionContext) {
     
     // Initialize ProfileChatHandler
     const agentsDir = path.join(context.extensionPath, 'templates', 'agents');
-    const userGlobalAgentsDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja', 'prompts');
+    const userGlobalAgentsDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.github', 'prompts');
     console.log(`Initializing ProfileChatHandler with agents directory: ${agentsDir}`);
     console.log(`User-global agents directory: ${userGlobalAgentsDir}`);
     
