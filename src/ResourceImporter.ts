@@ -136,7 +136,9 @@ export class ResourceImporter {
                 case 'prompt':
                     return path.join(cpNinjaDir, 'prompts', fileName);
                 case 'instruction':
-                    return path.join(cpNinjaDir, 'instructions', fileName);
+                    // Instructions go to user profile's .github/instructions for VS Code Copilot
+                    // This works across all workspaces per VS Code documentation
+                    return path.join(homeDir, '.github', 'instructions', fileName);
                 case 'agent':
                     return path.join(cpNinjaDir, 'AGENTS.md');
             }
