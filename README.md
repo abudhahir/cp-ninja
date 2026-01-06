@@ -23,6 +23,13 @@ updated
 - **Favorites system** - Pin frequently used skills
 - **Native editor integration** - Open skills in VS Code's markdown editor
 
+### 🌐 **Git Repository Browser**
+- **Browse GitHub repositories** for skills, prompts, instructions, and agents
+- **Import to project** (`.github/`) or **user profile** (VS Code User folder)
+- **Repository history** - Quick access to recently browsed repositories
+- **Auto-detection** of resource types based on file paths and content
+- **Progress indicators** for repository loading and import operations
+
 ### ⚙️ **Smart Configuration**
 - **Configurable personal skills directory** with `~` and environment variable support
 - **Suggestion engine** with cooldown and frequency controls
@@ -134,8 +141,27 @@ Manage your skill preferences:
 | **Create Dynamic Skill** | Create new skill interactively | Via Command Palette |
 | **Show Skill Stats** | View loading statistics | Via Command Palette |
 | **Show Welcome Screen** | Display onboarding | Via Command Palette |
+| **Browse Git Repository** | Import resources from GitHub repos | Status bar menu or Command Palette |
+| **Clear Git Repo History** | Clear repository browsing history | Via Command Palette |
 
-## 🛠️ Creating Personal Skills
+## � Resource Locations
+
+### Project Resources (Workspace-specific)
+Imported to `.github/` in your project:
+- **Prompts**: `.github/prompts/`
+- **Instructions**: `.github/instructions/`
+- **Agents**: `.github/prompts/`
+
+### User Resources (Cross-workspace)
+Imported to VS Code user profile, available in all workspaces:
+- **Prompts**: `~/Library/Application Support/Code/User/prompts/` (macOS)
+- **Instructions**: `~/Library/Application Support/Code/User/instructions/` (macOS)
+- **Agents**: `~/Library/Application Support/Code/User/prompts/` (macOS)
+- **Skills**: `~/.cp-ninja/skills/` (cp-ninja specific)
+
+*Note: Paths differ on Windows/Linux. For VS Code Insiders, replace `Code` with `Code - Insiders`.*
+
+## �🛠️ Creating Personal Skills
 
 ### Method 1: Interactive Creation
 1. Open Command Palette (Ctrl+Shift+P)

@@ -23,9 +23,13 @@ Successfully implemented a complete Git Repository Browser feature for cp-ninja 
 
 3. **ResourceImporter** (`src/ResourceImporter.ts`)
    - Validates resource content by type
-   - Imports to project (.github/) or user-global (~/.cp-ninja/) locations
+   - Imports to project (`.github/`) or user profile (VS Code User folder)
+   - Project resources: `.github/prompts/`, `.github/instructions/`
+   - User resources: `~/Library/Application Support/Code/User/prompts/`, `~/Library/Application Support/Code/User/instructions/`
+   - Skills: `~/.cp-ninja/skills/` (cp-ninja specific)
    - Handles file conflicts with user confirmation
    - Creates directories as needed
+   - Auto-detects VS Code vs VS Code Insiders
    - Methods: `validateResource()`, `importResource()`
    - ✅ All tests passing (9/9)
 
@@ -50,14 +54,18 @@ Successfully implemented a complete Git Repository Browser feature for cp-ninja 
 
 - ✅ Browse GitHub repositories for skills, prompts, instructions, and agents
 - ✅ Automatic resource detection based on VS Code standard paths
-- ✅ Import resources to project or user-global locations
+- ✅ Import resources to project (`.github/`) or user profile (VS Code User folder)
+- ✅ User-global prompts/instructions/agents work across all workspaces
 - ✅ Repository history with last 20 accessed repos
 - ✅ Resource counts displayed in history
 - ✅ Manual URL entry or selection from history
+- ✅ Progress indicators during repository loading and imports
+- ✅ Success messages with file paths after import
 - ✅ File conflict handling with user confirmation
 - ✅ Smart directory skipping during recursive fetch
 - ✅ 1-hour cache to reduce API calls
 - ✅ Error handling for API rate limits and auth failures
+- ✅ Auto-detection of VS Code vs VS Code Insiders
 
 ## Testing Status
 
@@ -98,9 +106,12 @@ PASS tests/ResourceImporter.test.ts (9 tests)
 
 5. **Test Resource Import**
    - Click "Import to Project" on any resource
-   - Verify file is created in `.github/skills/`, `.github/prompts/`, etc.
+   - Verify file is created in `.github/prompts/`, `.github/instructions/`, etc.
+   - Should see success message with file path
    - Try "Import to User" button
-   - Verify file is created in `~/.cp-ninja/skills/`, `~/.cp-ninja/prompts/`, etc.
+   - Verify prompts/instructions go to `~/Library/Application Support/Code/User/prompts/` or `.../instructions/`
+   - Skills go to `~/.cp-ninja/skills/`
+   - Success message confirms resource works across all workspaces
 
 6. **Test History**
    - Close and reopen the browser
