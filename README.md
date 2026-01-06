@@ -16,6 +16,7 @@ updated
 - **Slash commands** `/brainstorming`, `/systematic-debugging`, etc.
 - **Auto-suggestions** based on file context and development patterns
 - **Bootstrap mode** - Automatically shows getting started guidance
+- **Interactive tutorial** - Step-by-step onboarding for all concepts
 
 ### 🌟 **Skills Explorer**
 - **Dedicated sidebar** with searchable skills tree
@@ -51,6 +52,19 @@ updated
 4. Select the downloaded file
 
 ## 🚀 Getting Started
+
+### Interactive Tutorial
+**New users** - First time? Launch the interactive tutorial:
+1. Click the `@cp-ninja` beaker icon in the status bar
+2. Select "Show Tutorial" from the menu
+3. Or use Command Palette: `CP-Ninja: Show Tutorial`
+
+The tutorial covers:
+- **Skills** - Development workflows and methodologies
+- **Agents** - Autonomous AI workers for task execution
+- **Prompts** - Agent role templates
+- **Instructions** - Global Copilot context
+- **When to Use What** - Decision guide with practical examples
 
 ### Using Chat Integration
 1. Open the Chat panel in VS Code
@@ -121,7 +135,8 @@ Control how and when skills are suggested:
 
 ### Favorites & Blacklists
 
-Manage your skill preferences:
+Manage yoTutorial** | Launch interactive onboarding tutorial | Status bar → Show Tutorial |
+| **Show ur skill preferences:
 
 ```json
 {
