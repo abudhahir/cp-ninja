@@ -1,0 +1,47 @@
+name: Release Only
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+        - patch
+        - minor
+        - major
+      create_release:
+        description: 'Create GitHub release'
+        required: true
+        default: true
+        type: boolean
+  push:
+    tags: ['v*']
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    - name: Install dependencies
+      run: npm ci
+    - name: Lint and validate
+      run: |
+        npm run compile
+        # Add linting if you have it configured
+        # npm run lint
+    # Add your release steps here
+    # ...
