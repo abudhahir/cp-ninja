@@ -431,6 +431,22 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     }));
 
+    // Reload skills command - triggers skill registry refresh
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.reloadSkills', async () => {
+        console.log('[Extension] Reloading skills from personal directory');
+        try {
+            // Force reload of dynamic skill registry
+            if (dynamicSkillRegistry) {
+                await dynamicSkillRegistry.reloadPersonalSkills();
+                console.log('[Extension] Skills reloaded successfully');
+                vscode.window.showInformationMessage('✓ Personal skills reloaded');
+            }
+        } catch (error) {
+            console.error('[Extension] Error reloading skills:', error);
+            vscode.window.showErrorMessage(`Failed to reload skills: ${error}`);
+        }
+    }));
+
     // Add skill to favorites command
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.addToFavorites', async (skillItem: any) => {
         const skillName = skillItem?.label?.replace('⭐ ', '') || skillItem?.skillName || skillItem;

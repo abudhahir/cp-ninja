@@ -88,11 +88,14 @@ export class ResourceImporter {
             // Create directory if needed
             const dir = path.dirname(targetPath);
             if (!fs.existsSync(dir)) {
+                console.log(`[ResourceImporter] Creating directory: ${dir}`);
                 fs.mkdirSync(dir, { recursive: true });
             }
 
             // Write file
+            console.log(`[ResourceImporter] Writing file to: ${targetPath}`);
             fs.writeFileSync(targetPath, content, 'utf8');
+            console.log(`[ResourceImporter] File written successfully`);
 
             return { success: true, path: targetPath };
         } catch (error) {
@@ -112,8 +115,8 @@ export class ResourceImporter {
             switch (type) {
                 case 'skill':
                     // Extract skill name from filename or frontmatter
-                    const skillName = fileName.replace('.md', '').replace('SKILL', '').trim().toLowerCase();
-                    return path.join(this.workspacePath, '.github', 'skills', skillName || 'imported-skill', 'SKILL.md');
+                    const skillName = this.extractSkillName(fileName);
+                    return path.join(this.workspacePath, '.github', 'skills', skillName, 'SKILL.md');
                 case 'prompt':
                     return path.join(this.workspacePath, '.github', 'prompts', fileName);
                 case 'instruction':
@@ -128,8 +131,8 @@ export class ResourceImporter {
 
             switch (type) {
                 case 'skill':
-                    const skillName = fileName.replace('.md', '').replace('SKILL', '').trim().toLowerCase();
-                    return path.join(cpNinjaDir, 'skills', skillName || 'imported-skill', 'SKILL.md');
+                    const skillName = this.extractSkillName(fileName);
+                    return path.join(cpNinjaDir, 'skills', skillName, 'SKILL.md');
                 case 'prompt':
                     return path.join(cpNinjaDir, 'prompts', fileName);
                 case 'instruction':
@@ -138,5 +141,27 @@ export class ResourceImporter {
                     return path.join(cpNinjaDir, 'AGENTS.md');
             }
         }
+    }
+
+    /**
+     * Extract skill name from filename, removing common patterns
+     */
+    private extractSkillName(fileName: string): string {
+        let name = fileName
+            .replace(/\.md$/i, '')
+            .replace(/^SKILL[-_]?/i, '')
+            .replace(/[-_]SKILL$/i, '')
+            .trim();
+        
+        // If empty after cleaning, use a default
+        if (!name) {
+            name = 'imported-skill-' + Date.now();
+        }
+        
+        // Convert to lowercase and replace spaces/special chars with hyphens
+        name = name.toLowerCase().replace(/[\s_]+/g, '-').replace(/[^a-z0-9-]/g, '');
+        
+        console.log(`[ResourceImporter] Extracted skill name: "${name}" from "${fileName}"`);
+        return name;
     }
 }

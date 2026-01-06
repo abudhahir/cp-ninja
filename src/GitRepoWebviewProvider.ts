@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { GitRepoFetcher, FetchResult, RepoFile } from './GitRepoFetcher';
 import { ResourceImporter, ImportTarget, ResourceType } from './ResourceImporter';
 import { RepoHistoryManager, RepoHistoryEntry } from './RepoHistoryManager';
@@ -173,7 +174,23 @@ export class GitRepoWebviewProvider {
                     
                     if (result.success) {
                         console.log(`[GitRepoWebviewProvider] Successfully imported to ${result.path}`);
-                        vscode.window.showInformationMessage(`✓ Imported ${file.name} to ${target === 'project' ? 'project' : 'user-global'}`);
+                        
+                        // Trigger skill registry reload if it's a skill
+                        if (type === 'skill' && target === 'user-global') {
+                            console.log('[GitRepoWebviewProvider] Triggering skill registry reload for personal skills');
+                            // Send a message to trigger reload via a command
+                            await vscode.commands.executeCommand('cp-ninja.reloadSkills');
+                        }
+                        
+                        vscode.window.showInformationMessage(
+                            `✓ Imported ${file.name} to ${target === 'project' ? 'project' : 'user'}\nPath: ${result.path}`,
+                            'Open Folder'
+                        ).then(action => {
+                            if (action === 'Open Folder') {
+                                const folderPath = path.dirname(result.path!);
+                                vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(folderPath));
+                            }
+                        });
                     } else {
                         console.error(`[GitRepoWebviewProvider] Import failed:`, result.error);
                         vscode.window.showErrorMessage(`Import failed: ${result.error}`);
