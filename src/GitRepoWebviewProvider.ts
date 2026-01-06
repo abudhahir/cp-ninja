@@ -185,17 +185,12 @@ export class GitRepoWebviewProvider {
                         // Show appropriate message based on resource type and target
                         let message = `✓ Imported ${file.name} to ${target === 'project' ? 'project' : 'user'}\nPath: ${result.path}`;
                         
-                        // Add helpful context based on resource type
-                        if (target === 'user-global' && (type === 'prompt' || type === 'agent')) {
-                            message += '\n\n⚠️ Note: Copilot reads prompts/agents from .github/ in your project workspace.\nUser-global location saved but may not be visible to Copilot.\nConsider importing to project instead.';
-                        } else if (target === 'user-global' && type === 'instruction') {
-                            message += '\n\n✓ Instructions in your user profile work across all workspaces!';
+                        // Add helpful context for user-global imports
+                        if (target === 'user-global' && type !== 'skill') {
+                            message += '\n\n✓ Resources in your user profile work across all workspaces!';
                         }
                         
                         const actions = ['Open Folder'];
-                        if (target === 'user-global' && (type === 'prompt' || type === 'agent')) {
-                            actions.push('Import to Project Instead');
-                        }
                         
                         const action = await vscode.window.showInformationMessage(message, ...actions);
                         

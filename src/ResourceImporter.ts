@@ -134,13 +134,16 @@ export class ResourceImporter {
                     const skillName = this.extractSkillName(fileName);
                     return path.join(cpNinjaDir, 'skills', skillName, 'SKILL.md');
                 case 'prompt':
-                    return path.join(cpNinjaDir, 'prompts', fileName);
+                    // Prompts go to user profile's .github/prompts for VS Code Copilot
+                    // This works across all workspaces
+                    return path.join(homeDir, '.github', 'prompts', fileName);
                 case 'instruction':
                     // Instructions go to user profile's .github/instructions for VS Code Copilot
                     // This works across all workspaces per VS Code documentation
                     return path.join(homeDir, '.github', 'instructions', fileName);
                 case 'agent':
-                    return path.join(cpNinjaDir, 'AGENTS.md');
+                    // Agents also go to user profile's .github/prompts
+                    return path.join(homeDir, '.github', 'prompts', fileName);
             }
         }
     }
