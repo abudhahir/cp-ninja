@@ -330,10 +330,64 @@ export class GitRepoWebviewProvider {
         .search-box {
             width: 100%;
             padding: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             background: var(--vscode-input-background);
             color: var(--vscode-input-foreground);
             border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+        }
+        
+        .filter-search-box {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            background: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+        }
+        
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        .category-filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+        
+        .category-filter {
+            padding: 5px 12px;
+            background: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: 1px solid var(--vscode-button-border);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        .category-filter.active {
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+        }
+        
+        .category-filter:hover {
+            background: var(--vscode-button-hoverBackground);
+        }
+        
+        .view-toggle {
+            padding: 5px 12px;
+            background: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: 1px solid var(--vscode-button-border);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
         }
         
         .content {
@@ -355,9 +409,39 @@ export class GitRepoWebviewProvider {
             margin-bottom: 30px;
         }
         
-        .resource-section h3 {
-            color: var(--vscode-textLink-foreground);
+        .resource-section.collapsed .resource-list {
+            display: none;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px;
+            background: var(--vscode-list-hoverBackground);
+            border-radius: 4px;
             margin-bottom: 10px;
+        }
+        
+        .section-header:hover {
+            background: var(--vscode-list-activeSelectionBackground);
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--vscode-textLink-foreground);
+            font-weight: bold;
+        }
+        
+        .section-toggle {
+            font-size: 0.8em;
+        }
+        
+        .resource-list {
+            padding-left: 10px;
         }
         
         .resource-item {
@@ -370,8 +454,34 @@ export class GitRepoWebviewProvider {
             border-radius: 4px;
         }
         
+        .resource-item.hidden {
+            display: none;
+        }
+        
         .resource-item:hover {
             background: var(--vscode-list-activeSelectionBackground);
+        }
+        
+        .resource-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .resource-name {
+            font-weight: 500;
+        }
+        
+        .resource-path {
+            font-size: 0.85em;
+            color: var(--vscode-descriptionForeground);
+        }
+        
+        .highlight {
+            background: var(--vscode-editor-findMatchHighlightBackground);
+            padding: 1px 2px;
+            border-radius: 2px;
         }
         
         .import-buttons {
@@ -386,6 +496,7 @@ export class GitRepoWebviewProvider {
             padding: 5px 10px;
             cursor: pointer;
             border-radius: 4px;
+            white-space: nowrap;
         }
         
         button:hover {
@@ -409,6 +520,32 @@ export class GitRepoWebviewProvider {
             padding: 40px;
             color: var(--vscode-descriptionForeground);
         }
+        
+        .stats-summary {
+            display: flex;
+            gap: 15px;
+            padding: 10px;
+            background: var(--vscode-editor-background);
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .stat-count {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--vscode-textLink-foreground);
+        }
+        
+        .stat-label {
+            font-size: 0.85em;
+            color: var(--vscode-descriptionForeground);
+        }
     </style>
 </head>
 <body>
@@ -420,7 +557,7 @@ export class GitRepoWebviewProvider {
     
     <div class="content">
         <div class="main-panel">
-            ${data ? this.getResourcesHtml(data) : '<div class="empty-state"><p>Enter a repository URL to browse resources</p></div>'}
+            ${data ? this.getResourcesHtmlWithSearch(data) : '<div class="empty-state"><p>Enter a repository URL to browse resources</p></div>'}
         </div>
         
         <div class="sidebar">
@@ -432,6 +569,8 @@ export class GitRepoWebviewProvider {
     
     <script>
         const vscode = acquireVsCodeApi();
+        let currentViewMode = 'grouped'; // 'grouped' or 'flat'
+        let activeCategories = new Set(['skills', 'prompts', 'instructions', 'agents']);
         
         function loadRepo() {
             const input = document.getElementById('repoInput');
@@ -456,6 +595,113 @@ export class GitRepoWebviewProvider {
         function loadFromHistory(url) {
             document.getElementById('repoInput').value = url;
             loadRepo();
+        }
+        
+        function filterResources() {
+            const searchTerm = document.getElementById('filterSearch').value.toLowerCase();
+            const items = document.querySelectorAll('.resource-item');
+            
+            items.forEach(item => {
+                const category = item.dataset.category;
+                const name = item.querySelector('.resource-name').textContent.toLowerCase();
+                const path = item.querySelector('.resource-path').textContent.toLowerCase();
+                
+                const matchesSearch = !searchTerm || name.includes(searchTerm) || path.includes(searchTerm);
+                const matchesCategory = activeCategories.has(category);
+                
+                if (matchesSearch && matchesCategory) {
+                    item.classList.remove('hidden');
+                    highlightSearchTerm(item, searchTerm);
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+            
+            updateSectionVisibility();
+        }
+        
+        function highlightSearchTerm(item, searchTerm) {
+            if (!searchTerm) return;
+            
+            const nameEl = item.querySelector('.resource-name');
+            const pathEl = item.querySelector('.resource-path');
+            
+            [nameEl, pathEl].forEach(el => {
+                const text = el.textContent;
+                const regex = new RegExp(\`(\${searchTerm})\`, 'gi');
+                el.innerHTML = text.replace(regex, '<span class="highlight">$1</span>');
+            });
+        }
+        
+        function toggleCategory(category) {
+            if (activeCategories.has(category)) {
+                activeCategories.delete(category);
+            } else {
+                activeCategories.add(category);
+            }
+            
+            // Update button styles
+            const button = document.querySelector(\`.category-filter[data-category="\${category}"]\`);
+            if (button) {
+                button.classList.toggle('active');
+            }
+            
+            filterResources();
+        }
+        
+        function toggleViewMode() {
+            currentViewMode = currentViewMode === 'grouped' ? 'flat' : 'grouped';
+            const sections = document.querySelectorAll('.resource-section');
+            
+            if (currentViewMode === 'flat') {
+                sections.forEach(section => {
+                    section.classList.add('collapsed');
+                    const toggle = section.querySelector('.section-toggle');
+                    if (toggle) toggle.textContent = '▶';
+                });
+            } else {
+                sections.forEach(section => {
+                    section.classList.remove('collapsed');
+                    const toggle = section.querySelector('.section-toggle');
+                    if (toggle) toggle.textContent = '▼';
+                });
+            }
+            
+            // Update button text
+            const viewToggle = document.querySelector('.view-toggle');
+            if (viewToggle) {
+                viewToggle.textContent = currentViewMode === 'grouped' ? '📋 Flat View' : '📁 Grouped View';
+            }
+        }
+        
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (!section) return;
+            
+            section.classList.toggle('collapsed');
+            const toggle = section.querySelector('.section-toggle');
+            if (toggle) {
+                toggle.textContent = section.classList.contains('collapsed') ? '▶' : '▼';
+            }
+        }
+        
+        function updateSectionVisibility() {
+            const sections = document.querySelectorAll('.resource-section');
+            sections.forEach(section => {
+                const items = section.querySelectorAll('.resource-item:not(.hidden)');
+                const header = section.querySelector('.section-header');
+                const count = section.querySelector('.section-count');
+                
+                if (count) {
+                    count.textContent = \`(\${items.length})\`;
+                }
+                
+                if (items.length === 0) {
+                    section.style.display = 'none';
+                } else {
+                    section.style.display = 'block';
+                }
+            });
         }
         
         // Request history on load
@@ -491,7 +737,7 @@ export class GitRepoWebviewProvider {
 </html>`;
     }
 
-    private getResourcesHtml(data: FetchResult): string {
+    private getResourcesHtmlWithSearch(data: FetchResult): string {
         const skills = data.files.filter(f => f.path.toLowerCase().includes('.github/skills/'));
         const prompts = data.files.filter(f => 
             f.path.toLowerCase().includes('.github/prompts/') || 
@@ -505,30 +751,97 @@ export class GitRepoWebviewProvider {
         const agents = data.files.filter(f => f.path.toLowerCase().endsWith('agents.md'));
 
         return `
-            ${this.getResourceSection('Skills', skills)}
-            ${this.getResourceSection('Prompts', prompts)}
-            ${this.getResourceSection('Instructions', instructions)}
-            ${this.getResourceSection('Agents', agents)}
+            <div class="stats-summary">
+                <div class="stat-item">
+                    <div class="stat-count">${skills.length}</div>
+                    <div class="stat-label">Skills</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-count">${prompts.length}</div>
+                    <div class="stat-label">Prompts</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-count">${instructions.length}</div>
+                    <div class="stat-label">Instructions</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-count">${agents.length}</div>
+                    <div class="stat-label">Agents</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-count">${data.files.length}</div>
+                    <div class="stat-label">Total Files</div>
+                </div>
+            </div>
+            
+            <input type="text" class="filter-search-box" id="filterSearch" 
+                   placeholder="🔍 Search resources by name or path..." 
+                   oninput="filterResources()">
+            
+            <div class="toolbar">
+                <div class="category-filters">
+                    <button class="category-filter active" data-category="skills" onclick="toggleCategory('skills')">
+                        📚 Skills (${skills.length})
+                    </button>
+                    <button class="category-filter active" data-category="prompts" onclick="toggleCategory('prompts')">
+                        💬 Prompts (${prompts.length})
+                    </button>
+                    <button class="category-filter active" data-category="instructions" onclick="toggleCategory('instructions')">
+                        📝 Instructions (${instructions.length})
+                    </button>
+                    <button class="category-filter active" data-category="agents" onclick="toggleCategory('agents')">
+                        🤖 Agents (${agents.length})
+                    </button>
+                </div>
+                <button class="view-toggle" onclick="toggleViewMode()">📋 Flat View</button>
+            </div>
+            
+            ${this.getResourceSection('Skills', 'skills', '📚', skills)}
+            ${this.getResourceSection('Prompts', 'prompts', '💬', prompts)}
+            ${this.getResourceSection('Instructions', 'instructions', '📝', instructions)}
+            ${this.getResourceSection('Agents', 'agents', '🤖', agents)}
         `;
     }
 
-    private getResourceSection(title: string, files: RepoFile[]): string {
+    private getResourceSection(title: string, category: string, icon: string, files: RepoFile[]): string {
         if (files.length === 0) return '';
 
         return `
-            <div class="resource-section">
-                <h3>${title} (${files.length})</h3>
-                ${files.map(file => `
-                    <div class="resource-item">
-                        <span>${file.name}</span>
-                        <div class="import-buttons">
-                            <button onclick='importResource(${JSON.stringify(file)}, "project")'>Import to Project</button>
-                            <button onclick='importResource(${JSON.stringify(file)}, "user-global")'>Import to User</button>
-                        </div>
+            <div class="resource-section" id="section-${category}">
+                <div class="section-header" onclick="toggleSection('section-${category}')">
+                    <div class="section-title">
+                        <span>${icon}</span>
+                        <span>${title}</span>
+                        <span class="section-count">(${files.length})</span>
                     </div>
-                `).join('')}
+                    <span class="section-toggle">▼</span>
+                </div>
+                <div class="resource-list">
+                    ${files.map(file => `
+                        <div class="resource-item" data-category="${category}">
+                            <div class="resource-info">
+                                <div class="resource-name">${this.escapeHtml(file.name)}</div>
+                                <div class="resource-path">${this.escapeHtml(file.path)}</div>
+                            </div>
+                            <div class="import-buttons">
+                                <button onclick='importResource(${JSON.stringify(file)}, "project")'>📁 Project</button>
+                                <button onclick='importResource(${JSON.stringify(file)}, "user-global")'>👤 User</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
             </div>
         `;
+    }
+
+    private escapeHtml(text: string): string {
+        const div = { textContent: text } as any;
+        return div.textContent
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
     private getVsCodeApi(): string {

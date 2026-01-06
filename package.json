@@ -45,6 +45,12 @@
         "category": "Copilot Ninja"
       },
       {
+        "command": "cp-ninja.showTutorial",
+        "title": "Show Tutorial",
+        "category": "Copilot Ninja",
+        "icon": "$(mortar-board)"
+      },
+      {
         "command": "cp-ninja.searchSkills",
         "title": "Search Skills",
         "category": "Copilot Ninja",

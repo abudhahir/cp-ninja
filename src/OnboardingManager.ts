@@ -1,10 +1,14 @@
 import * as vscode from 'vscode';
+import { OnboardingWebviewProvider } from './OnboardingWebviewProvider';
 
 export class OnboardingManager {
     private static readonly ONBOARDING_COMPLETED_KEY = 'cpNinja.onboardingCompleted';
     private static readonly FIRST_SKILL_USED_KEY = 'cpNinja.firstSkillUsed';
+    private webviewProvider: OnboardingWebviewProvider;
     
-    constructor(private context: vscode.ExtensionContext) {}
+    constructor(private context: vscode.ExtensionContext) {
+        this.webviewProvider = new OnboardingWebviewProvider(context.extensionUri);
+    }
 
     /**
      * Check if user needs onboarding and show welcome if needed
@@ -24,13 +28,17 @@ export class OnboardingManager {
         const selection = await vscode.window.showInformationMessage(
             '🥷 Welcome to CP-Ninja! Transform your coding workflow with AI-powered skills.',
             { modal: true },
-            'Take Quick Tour',
+            'Interactive Tutorial',
+            'Quick Tour',
             'Browse Skills',
             'Start Coding'
         );
 
         switch (selection) {
-            case 'Take Quick Tour':
+            case 'Interactive Tutorial':
+                await this.showTutorial();
+                break;
+            case 'Quick Tour':
                 await this.startQuickTour();
                 break;
             case 'Browse Skills':
@@ -69,6 +77,13 @@ export class OnboardingManager {
             '🚀 The Skills Details view lets you browse and preview skills visually.',
             'Finish Tour'
         );
+    }
+
+    /**
+     * Show the interactive tutorial webview
+     */
+    public async showTutorial(): Promise<void> {
+        await this.webviewProvider.show();
     }
 
     /**

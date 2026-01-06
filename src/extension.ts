@@ -3,7 +3,6 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { promises as fsPromises } from 'fs';
 import { findSkillsInDir, resolveSkillPath, stripFrontmatter } from './lib/skills-core';
-import { EnhancedSkillTreeDataProvider } from './EnhancedSkillTreeDataProvider';
 import { SkillsWebviewProvider } from './SkillsWebviewProvider';
 import { SkillQuickPick } from './lib/SkillQuickPick';
 import { ProfileChatHandler } from './ProfileChatHandler';
@@ -514,6 +513,10 @@ export async function activate(context: vscode.ExtensionContext) {
     
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.resetOnboarding', () => {
         onboardingManager?.resetOnboarding();
+    }));
+    
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showTutorial', async () => {
+        await onboardingManager?.showTutorial();
     }));
 
     // Check for first-run onboarding
