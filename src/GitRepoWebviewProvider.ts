@@ -62,12 +62,13 @@ export class GitRepoWebviewProvider {
             this.currentData = data;
 
             // Add to history
-            await this.historyManager.addToHistory(repoUrl, {
-                skillsCount: data.skillsCount,
-                promptsCount: data.promptsCount,
-                instructionsCount: data.instructionsCount,
-                agentsCount: data.agentsCount
-            });
+            await this.historyManager.addToHistory(
+                repoUrl,
+                data.skillsCount,
+                data.promptsCount,
+                data.instructionsCount,
+                data.agentsCount
+            );
 
             this.panel.webview.html = this.getHtmlContent(data, repoUrl);
         } catch (error) {
