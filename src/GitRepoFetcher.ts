@@ -56,7 +56,8 @@ export class GitRepoFetcher {
             return cached.data;
         }
 
-        const files = await this.fetchViaGitHubAPI(owner, repo, token);
+        // Use recursive fetch instead of simple fetch
+        const files = await this.fetchDirectoryRecursive(owner, repo, '', token);
         const result = this.categorizeResources(files);
 
         // Cache result
@@ -109,14 +110,115 @@ export class GitRepoFetcher {
         }));
     }
 
+    private async fetchDirectoryRecursive(
+        owner: string,
+        repo: string,
+        path: string,
+        token?: string,
+        depth: number = 0
+    ): Promise<RepoFile[]> {
+        const MAX_DEPTH = 5; // Prevent infinite recursion
+        if (depth > MAX_DEPTH) {
+            return [];
+        }
+
+        const headers: HeadersInit = {
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'cp-ninja-vscode-extension'
+        };
+
+        if (token) {
+            headers['Authorization'] = `token ${token}`;
+        }
+
+        const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+        const response = await fetch(url, { headers });
+
+        if (!response.ok) {
+            return [];
+        }
+
+        const data = await response.json();
+        const allFiles: RepoFile[] = [];
+
+        for (const item of data) {
+            const file: RepoFile = {
+                name: item.name,
+                path: item.path,
+                type: item.type === 'dir' ? 'dir' : 'file',
+                downloadUrl: item.download_url,
+                sha: item.sha
+            };
+
+            if (item.type === 'dir') {
+                // Skip irrelevant directories
+                if (this.shouldSkipDirectory(item.name)) {
+                    continue;
+                }
+
+                // Recursively fetch subdirectory
+                const subFiles = await this.fetchDirectoryRecursive(
+                    owner,
+                    repo,
+                    item.path,
+                    token,
+                    depth + 1
+                );
+                allFiles.push(...subFiles);
+            } else {
+                allFiles.push(file);
+            }
+        }
+
+        return allFiles;
+    }
+
+    private shouldSkipDirectory(name: string): boolean {
+        const skipDirs = ['node_modules', '.git', 'dist', 'build', 'out', '.vscode', 'coverage'];
+        return skipDirs.includes(name);
+    }
+
     private categorizeResources(files: RepoFile[]): FetchResult {
-        // Placeholder - will implement actual categorization
+        let skillsCount = 0;
+        let promptsCount = 0;
+        let instructionsCount = 0;
+        let agentsCount = 0;
+
+        for (const file of files) {
+            const lowerPath = file.path.toLowerCase();
+
+            // Skills: .github/skills/*/SKILL.md or .github/skills/*/*.md
+            if (lowerPath.includes('.github/skills/') && lowerPath.endsWith('.md')) {
+                skillsCount++;
+            }
+            // Prompts: .github/prompts/*.prompt.md or *-prompt.md
+            else if (
+                (lowerPath.includes('.github/prompts/') && lowerPath.endsWith('.md')) ||
+                lowerPath.endsWith('-prompt.md') ||
+                lowerPath.endsWith('.prompt.md')
+            ) {
+                promptsCount++;
+            }
+            // Instructions: .github/instructions/*.instructions.md or .github/copilot-instructions.md
+            else if (
+                (lowerPath.includes('.github/instructions/') && lowerPath.endsWith('.md')) ||
+                lowerPath.includes('copilot-instructions.md') ||
+                lowerPath.endsWith('.instructions.md')
+            ) {
+                instructionsCount++;
+            }
+            // Agents: AGENTS.md anywhere
+            else if (lowerPath.endsWith('agents.md')) {
+                agentsCount++;
+            }
+        }
+
         return {
             files,
-            skillsCount: 0,
-            promptsCount: 0,
-            instructionsCount: 0,
-            agentsCount: 0
+            skillsCount,
+            promptsCount,
+            instructionsCount,
+            agentsCount
         };
     }
 }
