@@ -401,7 +401,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
         if (repoUrl) {
             console.log(`[Extension] Opening Git Repository Browser for: ${repoUrl}`);
-            await gitRepoWebviewProvider.show(repoUrl);
+            try {
+                await gitRepoWebviewProvider.show(repoUrl);
+                console.log('[Extension] gitRepoWebviewProvider.show() completed');
+            } catch (error) {
+                console.error('[Extension] Error in gitRepoWebviewProvider.show():', error);
+                vscode.window.showErrorMessage(`Failed to open repository browser: ${error}`);
+            }
+        } else {
+            console.log('[Extension] No repo URL provided');
         }
     }));
 

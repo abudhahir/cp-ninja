@@ -16,10 +16,19 @@ export class GitRepoWebviewProvider {
     ) {}
 
     async show(repoUrl?: string): Promise<void> {
+        console.log(`[GitRepoWebviewProvider] show() called with repoUrl: ${repoUrl}`);
+        
+        // Show immediate feedback
+        if (repoUrl) {
+            vscode.window.showInformationMessage(`Opening repository: ${repoUrl}`);
+        }
+        
         // Create or reveal panel
         if (this.panel) {
+            console.log('[GitRepoWebviewProvider] Revealing existing panel');
             this.panel.reveal(vscode.ViewColumn.One);
         } else {
+            console.log('[GitRepoWebviewProvider] Creating new webview panel');
             this.panel = vscode.window.createWebviewPanel(
                 'gitRepoBrowser',
                 'Git Repository Browser',
@@ -29,6 +38,7 @@ export class GitRepoWebviewProvider {
                     retainContextWhenHidden: true
                 }
             );
+            console.log('[GitRepoWebviewProvider] Webview panel created');
 
             this.panel.onDidDispose(() => {
                 this.panel = undefined;
@@ -50,12 +60,18 @@ export class GitRepoWebviewProvider {
     }
 
     private async loadRepository(repoUrl: string): Promise<void> {
-        if (!this.panel) return;
+        console.log(`[GitRepoWebviewProvider] loadRepository() called with: ${repoUrl}`);
+        
+        if (!this.panel) {
+            console.error('[GitRepoWebviewProvider] No panel available!');
+            return;
+        }
 
         this.currentRepo = repoUrl;
+        console.log('[GitRepoWebviewProvider] Setting loading HTML');
         this.panel.webview.html = this.getLoadingHtml();
 
-        console.log(`[GitRepoWebviewProvider] Loading repository: ${repoUrl}`);
+        console.log(`[GitRepoWebviewProvider] Starting GitHub fetch with progress indicator`);
 
         await vscode.window.withProgress(
             {
