@@ -97,6 +97,22 @@
         "command": "cp-ninja.openSkillInEditor",
         "title": "Open Skill in Editor",
         "category": "Copilot Ninja"
+      },
+      {
+        "command": "cpNinja.browseGitRepo",
+        "title": "Browse Git Repository",
+        "category": "Copilot Ninja",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "cpNinja.refreshGitRepoHistory",
+        "title": "Refresh Repository History",
+        "category": "Copilot Ninja"
+      },
+      {
+        "command": "cpNinja.clearGitRepoHistory",
+        "title": "Clear Repository History",
+        "category": "Copilot Ninja"
       }
     ],
     "chatParticipants": [
