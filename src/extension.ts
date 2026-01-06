@@ -225,10 +225,27 @@ export async function activate(context: vscode.ExtensionContext) {
     // Initialize ProfileChatHandler
     const agentsDir = path.join(context.extensionPath, 'templates', 'agents');
     
-    // VS Code User profile location (check both regular and Insiders)
+    // VS Code User profile location (platform-specific, check both regular and Insiders)
     const homeDir = process.env.HOME || process.env.USERPROFILE || '';
-    const vscodeInsidersProfile = path.join(homeDir, 'Library', 'Application Support', 'Code - Insiders', 'User', 'prompts');
-    const vscodeProfile = path.join(homeDir, 'Library', 'Application Support', 'Code', 'User', 'prompts');
+    let vscodeInsidersProfile: string;
+    let vscodeProfile: string;
+    
+    // Determine VS Code config paths based on platform
+    if (process.platform === 'win32') {
+        // Windows: %APPDATA%\Code\User\prompts
+        const appData = process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming');
+        vscodeInsidersProfile = path.join(appData, 'Code - Insiders', 'User', 'prompts');
+        vscodeProfile = path.join(appData, 'Code', 'User', 'prompts');
+    } else if (process.platform === 'darwin') {
+        // macOS: ~/Library/Application Support/Code/User/prompts
+        vscodeInsidersProfile = path.join(homeDir, 'Library', 'Application Support', 'Code - Insiders', 'User', 'prompts');
+        vscodeProfile = path.join(homeDir, 'Library', 'Application Support', 'Code', 'User', 'prompts');
+    } else {
+        // Linux: ~/.config/Code/User/prompts
+        vscodeInsidersProfile = path.join(homeDir, '.config', 'Code - Insiders', 'User', 'prompts');
+        vscodeProfile = path.join(homeDir, '.config', 'Code', 'User', 'prompts');
+    }
+    
     const userGlobalAgentsDir = fs.existsSync(vscodeInsidersProfile) ? vscodeInsidersProfile : vscodeProfile;
     
     console.log(`Initializing ProfileChatHandler with agents directory: ${agentsDir}`);
