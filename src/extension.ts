@@ -400,6 +400,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
 
         if (repoUrl) {
+            console.log(`[Extension] Opening Git Repository Browser for: ${repoUrl}`);
             await gitRepoWebviewProvider.show(repoUrl);
         }
     }));

@@ -55,26 +55,52 @@ export class GitRepoWebviewProvider {
         this.currentRepo = repoUrl;
         this.panel.webview.html = this.getLoadingHtml();
 
-        try {
-            // TODO: Get token from SecretStorage
-            const token = undefined;
-            const data = await this.fetcher.fetchRepoContents(repoUrl, token);
-            this.currentData = data;
+        console.log(`[GitRepoWebviewProvider] Loading repository: ${repoUrl}`);
 
-            // Add to history
-            await this.historyManager.addToHistory(
-                repoUrl,
-                data.skillsCount,
-                data.promptsCount,
-                data.instructionsCount,
-                data.agentsCount
-            );
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: `Fetching repository: ${repoUrl}`,
+                cancellable: false
+            },
+            async (progress) => {
+                try {
+                    progress.report({ message: 'Connecting to GitHub...' });
+                    
+                    // TODO: Get token from SecretStorage
+                    const token = undefined;
+                    
+                    progress.report({ message: 'Fetching repository contents...' });
+                    const data = await this.fetcher.fetchRepoContents(repoUrl, token);
+                    this.currentData = data;
 
-            this.panel.webview.html = this.getHtmlContent(data, repoUrl);
-        } catch (error) {
-            vscode.window.showErrorMessage(`Failed to fetch repository: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            this.panel.webview.html = this.getErrorHtml(error instanceof Error ? error.message : 'Unknown error');
-        }
+                    console.log(`[GitRepoWebviewProvider] Found ${data.skillsCount} skills, ${data.promptsCount} prompts, ${data.instructionsCount} instructions, ${data.agentsCount} agents`);
+
+                    progress.report({ message: 'Saving to history...' });
+                    // Add to history
+                    await this.historyManager.addToHistory(
+                        repoUrl,
+                        data.skillsCount,
+                        data.promptsCount,
+                        data.instructionsCount,
+                        data.agentsCount
+                    );
+
+                    progress.report({ message: 'Rendering results...' });
+                    if (this.panel) {
+                        this.panel.webview.html = this.getHtmlContent(data, repoUrl);
+                    }
+                    
+                    vscode.window.showInformationMessage(`✓ Loaded ${repoUrl}: ${data.files.length} files found`);
+                } catch (error) {
+                    console.error(`[GitRepoWebviewProvider] Error loading repository:`, error);
+                    vscode.window.showErrorMessage(`Failed to fetch repository: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                    if (this.panel) {
+                        this.panel.webview.html = this.getErrorHtml(error instanceof Error ? error.message : 'Unknown error');
+                    }
+                }
+            }
+        );
     }
 
     private async handleMessage(message: any): Promise<void> {
@@ -107,24 +133,41 @@ export class GitRepoWebviewProvider {
             return;
         }
 
-        try {
-            // Fetch file content
-            const content = await this.fetcher.fetchFileContent(this.currentRepo, file.path);
-            
-            // Determine resource type from path
-            const type = this.determineResourceType(file.path);
-            
-            // Import
-            const result = await this.importer.importResource(content, file.name, type, target);
-            
-            if (result.success) {
-                vscode.window.showInformationMessage(`Imported ${file.name} to ${target === 'project' ? 'project' : 'user-global'}`);
-            } else {
-                vscode.window.showErrorMessage(`Import failed: ${result.error}`);
+        console.log(`[GitRepoWebviewProvider] Importing ${file.name} to ${target}`);
+
+        await vscode.window.withProgress(
+            {
+                location: vscode.ProgressLocation.Notification,
+                title: `Importing ${file.name}`,
+                cancellable: false
+            },
+            async (progress) => {
+                try {
+                    progress.report({ message: 'Fetching file content...' });
+                    // Fetch file content
+                    const content = await this.fetcher.fetchFileContent(this.currentRepo!, file.path);
+                    
+                    progress.report({ message: 'Validating resource...' });
+                    // Determine resource type from path
+                    const type = this.determineResourceType(file.path);
+                    
+                    progress.report({ message: 'Writing file...' });
+                    // Import
+                    const result = await this.importer.importResource(content, file.name, type, target);
+                    
+                    if (result.success) {
+                        console.log(`[GitRepoWebviewProvider] Successfully imported to ${result.path}`);
+                        vscode.window.showInformationMessage(`✓ Imported ${file.name} to ${target === 'project' ? 'project' : 'user-global'}`);
+                    } else {
+                        console.error(`[GitRepoWebviewProvider] Import failed:`, result.error);
+                        vscode.window.showErrorMessage(`Import failed: ${result.error}`);
+                    }
+                } catch (error) {
+                    console.error(`[GitRepoWebviewProvider] Import error:`, error);
+                    vscode.window.showErrorMessage(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                }
             }
-        } catch (error) {
-            vscode.window.showErrorMessage(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
+        );
     }
 
     private determineResourceType(filePath: string): ResourceType {
