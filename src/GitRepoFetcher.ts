@@ -221,4 +221,42 @@ export class GitRepoFetcher {
             agentsCount
         };
     }
+
+    async fetchFileContent(
+        repoUrl: string,
+        filePath: string,
+        token?: string
+    ): Promise<string> {
+        const { owner, repo } = this.parseRepoUrl(repoUrl);
+        
+        const headers: HeadersInit = {
+            'Accept': 'application/vnd.github.v3.raw',
+            'User-Agent': 'cp-ninja-vscode-extension'
+        };
+
+        if (token) {
+            headers['Authorization'] = `token ${token}`;
+        }
+
+        const url = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
+        const response = await fetch(url, { headers });
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error(`File not found: ${filePath}`);
+            } else if (response.status === 403) {
+                throw new Error('GitHub API rate limit exceeded. Try again later or add a token.');
+            } else if (response.status === 401) {
+                throw new Error('Authentication failed. Check your token.');
+            }
+            throw new Error(`GitHub API error: ${response.statusText}`);
+        }
+
+        return await response.text();
+    }
+
+    clearCache(): void {
+        this.cache.clear();
+        console.log('GitRepoFetcher cache cleared');
+    }
 }

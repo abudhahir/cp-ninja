@@ -62,4 +62,33 @@ describe('GitRepoFetcher', () => {
         expect(result.instructionsCount).toBe(1);
         expect(result.agentsCount).toBe(1);
     });
+
+    test('fetchFileContent retrieves raw file content', async () => {
+        (global as any).fetch = jest.fn().mockResolvedValueOnce({
+            ok: true,
+            text: async () => '# Test File\nContent here'
+        });
+
+        const content = await fetcher.fetchFileContent('owner/repo', 'README.md');
+
+        expect(content).toBe('# Test File\nContent here');
+        expect((global as any).fetch).toHaveBeenCalledWith(
+            expect.stringContaining('README.md'),
+            expect.any(Object)
+        );
+    });
+
+    test('clearCache empties the cache', async () => {
+        // Populate cache by fetching
+        (global as any).fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            json: async () => []
+        });
+
+        await fetcher.fetchRepoContents('owner/repo');
+        expect((fetcher as any).cache.size).toBeGreaterThan(0);
+
+        fetcher.clearCache();
+        expect((fetcher as any).cache.size).toBe(0);
+    });
 });
