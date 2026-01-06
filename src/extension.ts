@@ -225,11 +225,19 @@ export async function activate(context: vscode.ExtensionContext) {
     
     // Initialize ProfileChatHandler
     const agentsDir = path.join(context.extensionPath, 'templates', 'agents');
+    const userGlobalAgentsDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja', 'prompts');
     console.log(`Initializing ProfileChatHandler with agents directory: ${agentsDir}`);
+    console.log(`User-global agents directory: ${userGlobalAgentsDir}`);
     
     // Check if agents directory exists
     if (fs.existsSync(agentsDir)) {
-        profileChatHandler = new ProfileChatHandler(context.extensionPath, path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja'), context.extensionPath, agentsDir);
+        profileChatHandler = new ProfileChatHandler(
+            context.extensionPath, 
+            path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja'), 
+            context.extensionPath, 
+            agentsDir,
+            userGlobalAgentsDir
+        );
         console.log('ProfileChatHandler initialized successfully');
     } else {
         console.warn(`Agents directory not found: ${agentsDir}`);

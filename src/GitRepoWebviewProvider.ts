@@ -182,15 +182,28 @@ export class GitRepoWebviewProvider {
                             await vscode.commands.executeCommand('cp-ninja.reloadSkills');
                         }
                         
-                        vscode.window.showInformationMessage(
-                            `✓ Imported ${file.name} to ${target === 'project' ? 'project' : 'user'}\nPath: ${result.path}`,
-                            'Open Folder'
-                        ).then(action => {
-                            if (action === 'Open Folder') {
-                                const folderPath = path.dirname(result.path!);
-                                vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(folderPath));
-                            }
-                        });
+                        // Show appropriate message based on resource type and target
+                        let message = `✓ Imported ${file.name} to ${target === 'project' ? 'project' : 'user'}\nPath: ${result.path}`;
+                        
+                        // Add warning for non-skill user-global imports
+                        if (target === 'user-global' && type !== 'skill') {
+                            message += '\n\n⚠️ Note: GitHub Copilot only reads prompts/instructions/agents from .github/ in your project workspace.\nUser-global imports are saved but won\'t be visible to Copilot.\nConsider importing to project instead.';
+                        }
+                        
+                        const actions = ['Open Folder'];
+                        if (target === 'user-global' && type !== 'skill') {
+                            actions.push('Import to Project Instead');
+                        }
+                        
+                        const action = await vscode.window.showInformationMessage(message, ...actions);
+                        
+                        if (action === 'Open Folder') {
+                            const folderPath = path.dirname(result.path!);
+                            vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(folderPath));
+                        } else if (action === 'Import to Project Instead') {
+                            // Re-import to project
+                            await this.importResource(file, 'project');
+                        }
                     } else {
                         console.error(`[GitRepoWebviewProvider] Import failed:`, result.error);
                         vscode.window.showErrorMessage(`Import failed: ${result.error}`);
