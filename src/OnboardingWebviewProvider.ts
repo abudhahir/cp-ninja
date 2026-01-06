@@ -49,7 +49,7 @@ export class OnboardingWebviewProvider {
                         await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
                         break;
                     case 'openSkillsExplorer':
-                        await vscode.commands.executeCommand('cp-ninja.showDetails');
+                        await vscode.commands.executeCommand('cp-ninja.skillsView.focus');
                         break;
                     case 'createSkill': {
                         await vscode.commands.executeCommand('cp-ninja.createSkill');
@@ -248,6 +248,15 @@ export class OnboardingWebviewProvider {
         .content-section p {
             margin-bottom: 15px;
             line-height: 1.8;
+            white-space: pre-line;
+        }
+        
+        .content-section code {
+            background-color: var(--vscode-textCodeBlock-background);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: var(--vscode-editor-font-family);
+            font-size: 0.9em;
         }
 
         .content-section ul, .content-section ol {
@@ -269,6 +278,12 @@ export class OnboardingWebviewProvider {
             font-size: 0.95em;
             overflow-x: auto;
             border: 1px solid var(--vscode-panel-border);
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+        
+        .code-block code {
+            white-space: pre;
         }
 
         .highlight-box {

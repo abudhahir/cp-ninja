@@ -284,16 +284,17 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(mainParticipant);
 
     // Create a status bar item
-    const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-    statusBarItem.text = `$(beaker) @cp-ninja`;
-    statusBarItem.tooltip = 'Copilot Ninja Skills - Click to access commands';
-    statusBarItem.command = 'cp-ninja.showCommands';
-    statusBarItem.show();
-    context.subscriptions.push(statusBarItem);
+    const mainStatusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+    mainStatusBar.text = `$(beaker) @cp-ninja`;
+    mainStatusBar.tooltip = 'Copilot Ninja Skills - Click to access commands';
+    mainStatusBar.command = 'cp-ninja.showCommands';
+    mainStatusBar.show();
+    context.subscriptions.push(mainStatusBar);
 
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showCommands', async () => {
         const pick = await vscode.window.showQuickPick(
             [
+                { label: '$(mortar-board) Show Tutorial', description: 'Open interactive CP-Ninja tutorial' },
                 { label: 'Show Skills', description: 'List all available skills' },
                 { label: 'Use Skill...', description: 'Select a specific skill to use' },
                 { label: '🌐 Browse Git Repository', description: 'Browse and import resources from GitHub repos' }
@@ -302,7 +303,9 @@ export async function activate(context: vscode.ExtensionContext) {
         );
 
         if (pick) {
-            if (pick.label === 'Show Skills') {
+            if (pick.label.includes('Show Tutorial')) {
+                await vscode.commands.executeCommand('cp-ninja.showTutorial');
+            } else if (pick.label === 'Show Skills') {
                 // Open chat view and show main participant
                 await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
                 vscode.window.showInformationMessage('In the chat view, type: @cp-ninja');
@@ -519,7 +522,7 @@ export async function activate(context: vscode.ExtensionContext) {
         await onboardingManager?.showTutorial();
     }));
 
-    // Check for first-run onboarding
+    // text.subscriptions.push(statusBarItem);
 
     // Register SkillQuickPick command
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showSkillsQuickPick', async () => {
