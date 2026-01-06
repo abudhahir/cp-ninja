@@ -12,6 +12,10 @@ import { EnhancedSuggestionEngine } from './EnhancedSuggestionEngine';
 import { ConfigurationManager } from './ConfigurationManager';
 import { DynamicSkillRegistry } from './DynamicSkillRegistry';
 import { AsyncSkillLoader } from './AsyncSkillLoader';
+import { GitRepoFetcher } from './GitRepoFetcher';
+import { RepoHistoryManager } from './RepoHistoryManager';
+import { ResourceImporter } from './ResourceImporter';
+import { GitRepoWebviewProvider } from './GitRepoWebviewProvider';
 // import { AutoProfileManager } from './AutoProfileManager';
 
 // Utility function to get the configured personal skills directory
@@ -37,6 +41,10 @@ let enhancedSuggestionEngine: EnhancedSuggestionEngine;
 let configurationManager: ConfigurationManager;
 let dynamicSkillRegistry: DynamicSkillRegistry;
 let asyncSkillLoader: AsyncSkillLoader;
+let gitRepoFetcher: GitRepoFetcher;
+let repoHistoryManager: RepoHistoryManager;
+let resourceImporter: ResourceImporter;
+let gitRepoWebviewProvider: GitRepoWebviewProvider;
 // let autoProfileManager: AutoProfileManager;
 
 // Utility function to copy agents directory to .github/prompts
@@ -236,6 +244,13 @@ export async function activate(context: vscode.ExtensionContext) {
         dynamicSkillRegistry = new DynamicSkillRegistry(skillsDir, personalSkillsDir);
         asyncSkillLoader = new AsyncSkillLoader(skillsDir, personalSkillsDir);
         
+        // Initialize Git Repository Browser components
+        gitRepoFetcher = new GitRepoFetcher();
+        repoHistoryManager = new RepoHistoryManager(context);
+        const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+        resourceImporter = new ResourceImporter(workspacePath);
+        gitRepoWebviewProvider = new GitRepoWebviewProvider(context, gitRepoFetcher, resourceImporter, repoHistoryManager);
+        
         // Auto-reload personal skills when files change (packaged skills are static)
         const autoReloadDisposable = dynamicSkillRegistry.enableAutoReload();
         context.subscriptions.push(autoReloadDisposable);
@@ -260,13 +275,16 @@ export async function activate(context: vscode.ExtensionContext) {
     statusBarItem.text = `$(beaker) @cp-ninja`;
     statusBarItem.tooltip = 'Copilot Ninja Skills - Click to access commands';
     statusBarItem.command = 'cp-ninja.showCommands';
-    context.subscriptions.push(statusBarItem);
     statusBarItem.show();
+    context.subscriptions.push(statusBarItem);
 
-    // Register command for the status bar item
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.showCommands', async () => {
         const pick = await vscode.window.showQuickPick(
-            [{ label: 'Show Skills', description: 'List all available skills' }, { label: 'Use Skill...', description: 'Select a specific skill to use' }],
+            [
+                { label: 'Show Skills', description: 'List all available skills' },
+                { label: 'Use Skill...', description: 'Select a specific skill to use' },
+                { label: '🌐 Browse Git Repository', description: 'Browse and import resources from GitHub repos' }
+            ],
             { placeHolder: 'Select a Copilot Ninja command' }
         );
 
@@ -288,6 +306,8 @@ export async function activate(context: vscode.ExtensionContext) {
                     await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
                     vscode.window.showInformationMessage(`In the chat view, type: @cp-ninja /${skillPick.label}`);
                 }
+            } else if (pick.label === '🌐 Browse Git Repository') {
+                await vscode.commands.executeCommand('cpNinja.browseGitRepo');
             }
         }
     }));
@@ -331,6 +351,75 @@ export async function activate(context: vscode.ExtensionContext) {
         // For webview, we just refresh - filtering is done in the search box
         skillsWebviewProvider.refresh();
         vscode.window.showInformationMessage('Favorites toggled');
+    }));
+
+    // Git Repository Browser commands
+    context.subscriptions.push(vscode.commands.registerCommand('cpNinja.browseGitRepo', async () => {
+        // Get history
+        const history = await repoHistoryManager.getHistory();
+        
+        const items: vscode.QuickPickItem[] = [
+            { label: '$(add) Enter Repository URL...', description: 'Manually enter a GitHub repository URL' },
+            { kind: vscode.QuickPickItemKind.Separator, label: 'Recent Repositories' },
+            ...history.map(entry => ({
+                label: entry.url,
+                description: `Skills: ${entry.skillsCount} | Prompts: ${entry.promptsCount} | Instructions: ${entry.instructionsCount} | Agents: ${entry.agentsCount}`,
+                detail: `Last accessed: ${new Date(entry.lastAccessed).toLocaleDateString()}`
+            }))
+        ];
+
+        const pick = await vscode.window.showQuickPick(items, {
+            placeHolder: 'Select a repository or enter a new URL',
+            matchOnDescription: true,
+            matchOnDetail: true
+        });
+
+        if (!pick) {
+            return;
+        }
+
+        let repoUrl: string | undefined;
+
+        if (pick.label === '$(add) Enter Repository URL...') {
+            repoUrl = await vscode.window.showInputBox({
+                prompt: 'Enter GitHub repository URL',
+                placeHolder: 'owner/repo or https://github.com/owner/repo',
+                validateInput: (value) => {
+                    if (!value || value.trim().length === 0) {
+                        return 'Repository URL cannot be empty';
+                    }
+                    const match = value.match(/(?:github\.com\/)?([^\/]+)\/([^\/\s]+)/);
+                    if (!match) {
+                        return 'Invalid repository URL format. Use owner/repo or https://github.com/owner/repo';
+                    }
+                    return null;
+                }
+            });
+        } else {
+            repoUrl = pick.label;
+        }
+
+        if (repoUrl) {
+            await gitRepoWebviewProvider.show(repoUrl);
+        }
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand('cpNinja.refreshGitRepoHistory', async () => {
+        vscode.window.showInformationMessage('Repository history refreshed');
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand('cpNinja.clearGitRepoHistory', async () => {
+        const confirm = await vscode.window.showWarningMessage(
+            'Are you sure you want to clear all repository history?',
+            { modal: true },
+            'Yes',
+            'No'
+        );
+
+        if (confirm === 'Yes') {
+            await repoHistoryManager.clearHistory();
+            vscode.window.showInformationMessage('Repository history cleared');
+        }
     }));
 
     // Add skill to favorites command
