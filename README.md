@@ -28,12 +28,26 @@ A VS Code extension that enhances GitHub Copilot with structured, reusable skill
 code --install-extension cp-ninja-*.vsix
 ```
 
+## Development & Packaging
+
+- **Run the dev host**: press `F5` in VS Code Insiders. In `.vscode/launch.json` we enable the `chatParticipantAdditions` proposal by passing `--enable-proposed-api copilot-ninja.cp-ninja`, which is required for the `@cp-ninja` participant to appear in Copilot Chat.
+- **Build artifacts**: `npm run compile` transpiles TypeScript into `out/`. Run `npm run validate` before committing to compile, lint, and test in one step.
+- **Create a VSIX**: `npx vsce package --allow-unused-files-pattern` packages the extension (the flag suppresses `vsce` warnings about globs that point to build artifacts).
+- **Install the VSIX**: In VS Code, open the Extensions view, click `…` → “Install from VSIX…” and pick the generated `cp-ninja-*.vsix`.
+
 ## Quick Start
 
 1. **Launch tutorial**: Click status bar `@cp-ninja` icon → "Show Tutorial"
-2. **Use in chat**: Type `@cp-ninja` to see available skills
-3. **Activate skill**: `@cp-ninja /brainstorming` or `@cp-ninja /systematic-debugging`
-4. **Browse skills**: Open CP-Ninja sidebar from activity bar
+2. **Enable the participant**: In VS Code Insiders open GitHub Copilot Chat, type `@`, and pick `cp-ninja`. If you’re developing locally, run the Extension Development Host with the launch configuration provided so `--enable-proposed-api copilot-ninja.cp-ninja` is set.
+3. **Activate a slash command**: `@cp-ninja /brainstorming`, `@cp-ninja /systematic-debugging`, etc., to load the matching skill.
+4. **Browse skills**: Open CP-Ninja sidebar from the activity bar or run `CP-Ninja: Show Skills Quick Pick`.
+
+## Chat Participant Usage
+
+- Skills run entirely inside GitHub Copilot Chat. Start any conversation with `@cp-ninja` to access the participant.
+- For Chat previews (VS Code Insiders), the launch configuration already includes `--enable-proposed-api copilot-ninja.cp-ninja`. If you build your own `launch.json`, add the same runtime argument or VS Code will reject the chat participant.
+- Slash commands can be chained in a conversation. CP-Ninja also posts a bootstrap skill (`using-cp-ninja`) on the first turn to remind you of required workflows (brainstorming, TDD, etc.).
+- If a slash command isn’t recognized, ensure your workspace trusts the extension and you’re running Insiders (chat participants are currently gated there).
 
 ## Chat Participant Commands
 
