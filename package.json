@@ -25,11 +25,15 @@
   "engines": {
     "vscode": "^1.75.0"
   },
+  "enabledApiProposals": [
+    "chatParticipantAdditions"
+  ],
   "categories": [
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onChatParticipant:cp-ninja"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -118,6 +122,11 @@
       {
         "command": "cpNinja.clearGitRepoHistory",
         "title": "Clear Repository History",
+        "category": "Copilot Ninja"
+      },
+      {
+        "command": "cp-ninja.reloadPackagedSkills",
+        "title": "Reload Packaged Skills (Symlinks & Log)",
         "category": "Copilot Ninja"
       }
     ],
@@ -358,5 +367,15 @@
     "rimraf": "^5.0.0",
     "ts-jest": "^29.4.6",
     "typescript": "^5.0.4"
-  }
+  },
+  "files": [
+    "out",
+    "src",
+    "skills",
+    "resources",
+    "templates",
+    "package.json",
+    "README.md",
+    "LICENSE.txt"
+  ]
 }

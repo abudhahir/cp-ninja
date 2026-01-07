@@ -15,6 +15,7 @@ import { GitRepoFetcher } from './GitRepoFetcher';
 import { RepoHistoryManager } from './RepoHistoryManager';
 import { ResourceImporter } from './ResourceImporter';
 import { GitRepoWebviewProvider } from './GitRepoWebviewProvider';
+import { ResourceManager } from './ResourceManager';
 // import { AutoProfileManager } from './AutoProfileManager';
 
 // Utility function to get the configured personal skills directory
@@ -33,6 +34,36 @@ function getPersonalSkillsDirectory(): string {
     return path.join(process.env.HOME || process.env.USERPROFILE || '', '.cp-ninja', 'skills');
 }
 
+function suggestSkillsForPrompt(prompt: string, skills: SkillSummary[]): SkillSummary[] {
+    const tokens = prompt.toLowerCase().split(/\W+/).filter(token => token.length >= 3);
+    if (tokens.length === 0) {
+        return [];
+    }
+    const uniqueTokens = new Set(tokens);
+    const scored = skills
+        .map(skill => {
+            let score = 0;
+            if (uniqueTokens.has(skill.name.toLowerCase())) {
+                score += 5;
+            }
+            if (skill.description) {
+                const desc = skill.description.toLowerCase();
+                uniqueTokens.forEach(token => {
+                    if (desc.includes(token)) {
+                        score += 1;
+                    }
+                });
+            }
+            return { ...skill, score };
+        })
+        .filter(result => result.score > 0);
+
+    return scored
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+        .map(({ name, description }) => ({ name, description }));
+}
+
 let extensionBasePath: string; // Declare globally
 let profileChatHandler: ProfileChatHandler; // Profile chat handler instance
 let onboardingManager: OnboardingManager;
@@ -45,6 +76,11 @@ let repoHistoryManager: RepoHistoryManager;
 let resourceImporter: ResourceImporter;
 let gitRepoWebviewProvider: GitRepoWebviewProvider;
 // let autoProfileManager: AutoProfileManager;
+
+interface SkillSummary {
+    name: string;
+    description?: string;
+}
 
 // Utility function to copy agents directory to .github/prompts
 async function copyAgentsToGitHubPrompts(extensionPath: string): Promise<void> {
@@ -195,7 +231,28 @@ const mainChatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRe
     const dynamicSkills = dynamicSkillRegistry?.getAllSkills() || [];
     const cpNinjaSkills = findSkillsInDir(skillsDir, 'cp-ninja');
     const personalSkills = findSkillsInDir(personalSkillsDir, 'personal');
-    const allSkills = [...cpNinjaSkills, ...personalSkills, ...dynamicSkills.map(s => ({ name: s.name, description: s.description }))];
+    const allSkills: SkillSummary[] = [
+        ...cpNinjaSkills,
+        ...personalSkills,
+        ...dynamicSkills.map(s => ({ name: s.name, description: s.description }))
+    ];
+
+    const promptText = request.prompt?.trim();
+    if (promptText) {
+        const suggestedSkills = suggestSkillsForPrompt(promptText, allSkills);
+        if (suggestedSkills.length > 0) {
+            stream.markdown(
+                `Here are skills that match your request:\n\n` +
+                suggestedSkills.map(skill => `- **@cp-ninja /${skill.name}** – ${skill.description || 'general guidance'}\n`).join('') +
+                `\nRun one of the slash commands above or let me know if you need a different workflow.`
+            );
+        } else {
+            stream.markdown(
+                `I couldn't match your request to a specific skill yet. Try running \`@cp-ninja /brainstorming\` to clarify requirements or use the Skills Details view to explore workflows.`
+            );
+        }
+        return {};
+    }
 
     if (allSkills.length === 0) {
         stream.markdown('No skills found.');
@@ -210,10 +267,67 @@ const mainChatHandler: vscode.ChatRequestHandler = async (request: vscode.ChatRe
 };
 
 export async function activate(context: vscode.ExtensionContext) {
-    console.log('Congratulations, your extension "cp-ninja" is now active!');
+    extensionBasePath = context.extensionPath;
+    console.log('Activating Copilot Ninja extension...');
+    vscode.window.showInformationMessage('Copilot Ninja extension activated.');
 
-    extensionBasePath = context.extensionPath; // Store the extension path
-    
+    // Register reloadPackagedSkills command FIRST, unconditionally
+    vscode.window.showInformationMessage('Registering cp-ninja.reloadPackagedSkills command...');
+    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.reloadPackagedSkills', async () => {
+        vscode.window.showInformationMessage('Reload Packaged Skills command invoked.');
+        const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+        const installLogDir = path.join(homeDir, '.cp-ninja', 'logs');
+        const installLogPath = path.join(installLogDir, 'install.log');
+        await fs.promises.mkdir(installLogDir, { recursive: true });
+        let installLog = `==== Packaged Skills Reload @ ${new Date().toISOString()} ===\n`;
+        installLog += `HOME/USERPROFILE: ${homeDir}\n`;
+        installLog += `ExtensionBasePath: ${extensionBasePath}\n`;
+        const skillsDir = path.join(extensionBasePath, 'skills');
+        installLog += `SkillsDir: ${skillsDir}\n`;
+        try {
+            // Remove all plugin-created symlinks
+            const resourceManager = new ResourceManager(extensionBasePath);
+            const cleanupResult = await resourceManager.removeSkillSymlinksFromLog();
+            if (cleanupResult.errors.length > 0 && !cleanupResult.errors[0].includes('ENOENT')) {
+                vscode.window.showWarningMessage(`Some symlinks could not be removed: ${cleanupResult.errors.join('; ')}`);
+                installLog += `Symlink cleanup errors: ${cleanupResult.errors.join('; ')}\n`;
+            }
+            // Recreate symlinks and log
+            const skillPaths = await resourceManager.enumeratePackagedSkills();
+            vscode.window.showInformationMessage(`Found ${skillPaths.length} skills: ${skillPaths.map(p => path.basename(p)).join(', ')}`);
+            installLog += `Found ${skillPaths.length} skills: ${skillPaths.map(p => path.basename(p)).join(', ')}\n`;
+            if (skillPaths.length === 0) {
+                vscode.window.showWarningMessage('No skills found in the packaged skills directory. Symlinks will not be created.');
+                installLog += 'No skills found in the packaged skills directory. Symlinks will not be created.\n';
+            }
+            const symlinkResult = await resourceManager.createOrOverwriteSkillSymlinks();
+            skillPaths.forEach((targetPath, idx) => {
+                const skill = path.basename(targetPath);
+                const symlinkPath = path.join(homeDir, '.copilot', 'skills', skill);
+                installLog += `Symlink attempt: ${symlinkPath} -> ${targetPath}\n`;
+                if (symlinkResult.errors[idx]) {
+                    installLog += `Symlink error: ${symlinkResult.errors[idx]}\n`;
+                }
+            });
+            if (symlinkResult.errors.length > 0) {
+                symlinkResult.errors.forEach(err => vscode.window.showWarningMessage(`Symlink error: ${err}`));
+            }
+            const symlinks = skillPaths.map((targetPath) => {
+                const skill = path.basename(targetPath);
+                const symlinkPath = path.join(homeDir, '.copilot', 'skills', skill);
+                return { skill, symlinkPath, targetPath };
+            });
+            const logPath = await resourceManager.writeSkillSymlinkLog(symlinks);
+            installLog += `Symlink log written to: ${logPath}\n`;
+            vscode.window.showInformationMessage(`Packaged skills have been reloaded and symlinks/log refreshed. Log: ${logPath}`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to reload packaged skills: ${error instanceof Error ? error.message : error}`);
+            installLog += `Exception: ${error instanceof Error ? error.message : error}\n`;
+        }
+        await fs.promises.appendFile(installLogPath, installLog + '\n', 'utf8');
+    }));
+    vscode.window.showInformationMessage('cp-ninja.reloadPackagedSkills command registered.');
+
     // Copy agents directory to .github/prompts on startup
     copyAgentsToGitHubPrompts(context.extensionPath).catch(error => {
         console.error('Error during agents directory copy:', error);
@@ -277,8 +391,8 @@ export async function activate(context: vscode.ExtensionContext) {
         // Initialize Git Repository Browser components
         gitRepoFetcher = new GitRepoFetcher();
         repoHistoryManager = new RepoHistoryManager(context);
-        const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
-        resourceImporter = new ResourceImporter(workspacePath);
+        const mainWorkspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+        resourceImporter = new ResourceImporter(mainWorkspacePath);
         gitRepoWebviewProvider = new GitRepoWebviewProvider(context, gitRepoFetcher, resourceImporter, repoHistoryManager);
         
         // Auto-reload personal skills when files change (packaged skills are static)
@@ -547,19 +661,6 @@ export async function activate(context: vscode.ExtensionContext) {
         await skillQuickPick.showSkillPicker();
     }));
 
-    // Register dynamic skill management commands
-    context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.reloadSkills', async () => {
-        if (dynamicSkillRegistry) {
-            await dynamicSkillRegistry.reloadPersonalSkills();
-            vscode.window.showInformationMessage('Personal skills reloaded successfully! (Packaged skills are always available)');
-            
-            // Refresh webview
-            if (skillsWebviewProvider) {
-                skillsWebviewProvider.refresh();
-            }
-        }
-    }));
-
     context.subscriptions.push(vscode.commands.registerCommand('cp-ninja.createDynamicSkill', async () => {
         const name = await vscode.window.showInputBox({
             prompt: 'Enter skill name',
@@ -619,6 +720,26 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     }));
 
+    // After all other initialization, create symlinks and log
+    if (mainWorkspacePath) {
+        const resourceManager = new ResourceManager(mainWorkspacePath);
+        try {
+            const skillPaths = await resourceManager.enumeratePackagedSkills();
+            const symlinkResult = await resourceManager.createOrOverwriteSkillSymlinks();
+            // Prepare log entries
+            const symlinks = skillPaths.map((targetPath) => {
+                const skill = path.basename(targetPath);
+                const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+                const symlinkPath = path.join(homeDir, '.copilot', 'skills', skill);
+                return { skill, symlinkPath, targetPath };
+            });
+            const logPath = await resourceManager.writeSkillSymlinkLog(symlinks);
+            vscode.window.showInformationMessage(`Packaged skills have been (re)linked in ~/.copilot/skills. Log written to ${logPath}.`);
+            if (symlinkResult.errors.length > 0) {
+                vscode.window.showWarningMessage(`Some symlinks failed: ${symlinkResult.errors.join('; ')}`);
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to create skill symlinks: ${error instanceof Error ? error.message : error}`);
+        }
+    }
 }
-
-export function deactivate() {}

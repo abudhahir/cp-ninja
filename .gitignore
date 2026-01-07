@@ -1,3 +1,6 @@
+# Local git worktrees
+.worktrees/
+
 # Compiled output
 out/
 webview-dist/
