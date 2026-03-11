@@ -247,6 +247,8 @@ Then generate the combined Markdown document using **exactly** this template str
 | 404 | Not Found | [message] |
 | [code] | [reason] | [message] |
 
+*(Replace these rows with the actual error codes and messages captured in Q12 and Q13. Do not keep sample rows for codes that don't apply.)*
+
 ---
 
 ## Validation Rules
@@ -281,14 +283,16 @@ Then generate the combined Markdown document using **exactly** this template str
  *
  * @param [param_name] [description]
  * @param requestBody the {@link [BodyClassName]} containing the request data
- * @return [RESPONSE_DESCRIPTION] ([STATUS_CODE] [STATUS_TEXT])
+ * @return [RESPONSE_DESCRIPTION] ([SUCCESS_STATUS_CODE] [STATUS_TEXT])
  * @throws ResponseStatusException [STATUS_CODE] if [reason]
  */
 ```
 
+*(Repeat one `@param` line per path parameter and one per query parameter captured in Phase 2. Repeat one `@throws` line per error code captured in Phase 3.)*
+
 *Path param line format:* `* @param {name} {description}`
 *Request body line format:* `* @param requestBody the {@link [BodyClassName]} containing the request data`
-*Exception line format:* `* @throws ResponseStatusException [{STATUS_CODE}] if [reason]`
+*Exception line format:* `* @throws ResponseStatusException [ERROR_STATUS_CODE] if [reason]`
 
 ### SpringDoc Annotations
 
@@ -379,10 +383,12 @@ components:
           description: "[description]"
 ```
 
-*YAML must be self-contained. Use inline schemas (no external $ref files).*
+*YAML must be self-contained. Internal `$ref` references to `#/components/schemas/...` are correct and required. Do NOT reference external files (e.g., `$ref: './other.yaml'`).*
 ````
 
 ---
+
+**Placeholder alignment note:** `[ResponseClassName]` (SpringDoc) and `[ResponseSchema]` (OpenAPI YAML) must resolve to the same class/schema name. Similarly, `[BodyClassName]` (JavaDoc) and `[RequestBodySchema]` (OpenAPI YAML) must resolve to the same class/schema name. Use the same base name across all three output sections.
 
 After generating the document, say:
 
