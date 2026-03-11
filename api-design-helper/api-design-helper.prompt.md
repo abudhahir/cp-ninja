@@ -185,10 +185,11 @@ Once all phases are complete, say:
 
 > "I have everything I need. Generating your API design document now..."
 
-Then generate the combined Markdown document using **exactly** this template structure. Fill in every section with the answers collected during the interview. Do not skip any section — use "N/A" if not applicable.
+Read the file `api-design-helper/templates/api-design-output.template.md` from the workspace and use it as the output structure. Fill in every placeholder with the answers collected during the interview. Do not skip any section — use "N/A" if not applicable.
 
-### OUTPUT TEMPLATE
+**Placeholder alignment:** `[ResponseClassName]` (SpringDoc) and `[ResponseSchema]` (OpenAPI YAML) must use the same base name. `[BodyClassName]` (JavaDoc) and `[RequestBodySchema]` (OpenAPI YAML) must use the same base name.
 
+<!--TEMPLATE-START (kept for reference only — use the file above, not this block)-->
 ````markdown
 # API Design: [HTTP_METHOD] [PATH]
 
@@ -393,10 +394,7 @@ components:
 
 *YAML must be self-contained. Internal `$ref` references to `#/components/schemas/...` are correct and required. Do NOT reference external files (e.g., `$ref: './other.yaml'`).*
 ````
-
----
-
-**Placeholder alignment note:** `[ResponseClassName]` (SpringDoc) and `[ResponseSchema]` (OpenAPI YAML) must resolve to the same class/schema name. Similarly, `[BodyClassName]` (JavaDoc) and `[RequestBodySchema]` (OpenAPI YAML) must resolve to the same class/schema name. Use the same base name across all three output sections.
+<!--TEMPLATE-END-->
 
 After generating the document, say:
 

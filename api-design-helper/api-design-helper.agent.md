@@ -1,6 +1,8 @@
 # API Design Helper
 
 > **Usage:** Paste this file's contents as a system prompt in any AI coding agent (Cursor, Windsurf, Claude Code, ChatGPT, etc.), or reference it as a custom agent instruction. One endpoint per conversation.
+>
+> **Template:** The output template is embedded in Phase 7 below. If your agent has workspace file access, use `api-design-helper/templates/api-design-output.template.md` instead — it is the single source of truth.
 
 ---
 
