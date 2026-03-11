@@ -231,7 +231,7 @@ Then generate the combined Markdown document using **exactly** this template str
 
 ## Response
 
-### Success Response — [STATUS_CODE] [STATUS_TEXT]
+### Success Response — [SUCCESS_STATUS_CODE] [STATUS_TEXT]
 
 | Field | Type | Description |
 |-------|------|-------------|
