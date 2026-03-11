@@ -284,7 +284,7 @@ Then generate the combined Markdown document using **exactly** this template str
  * @param [param_name] [description]
  * @param requestBody the {@link [BodyClassName]} containing the request data
  * @return [RESPONSE_DESCRIPTION] ([SUCCESS_STATUS_CODE] [STATUS_TEXT])
- * @throws ResponseStatusException [STATUS_CODE] if [reason]
+ * @throws ResponseStatusException [ERROR_STATUS_CODE] if [reason]
  */
 ```
 
